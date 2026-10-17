@@ -14,8 +14,9 @@ await db.assessment.create({
     pages: { create: { id: stableId(id, url), url } },
   },
 });
+const offlineMode = process.env.TRACE508_TEST_OFFLINE ?? '1';
 try {
-  await scanAssessment(id, process.env.TRACE508_TEST_OFFLINE === '1' ? { offline: true } : {});
+  await scanAssessment(id, offlineMode === '1' ? { offline: true } : {});
   const a = await db.assessment.findUniqueOrThrow({
     where: { id },
     include: { runs: true, findings: true },
@@ -23,9 +24,12 @@ try {
   if (a.status !== 'failed' || a.runs[0].status !== 'failed' || a.findings.length)
     throw new Error('Failure propagation assertion failed');
   console.log(
-    `PASS: actual ${process.env.TRACE508_TEST_OFFLINE === '1' ? 'network navigation' : 'browser launch'} failure persists failed assessment and failed run, with zero invented findings.`,
+    `PASS: actual ${offlineMode === '1' ? 'network navigation' : 'browser launch'} failure persists failed assessment and failed run, with zero invented findings.`,
   );
 } finally {
-  await db.assessment.delete({ where: { id } });
+  await db.evidence.deleteMany({ where: { page: { assessmentId: id } } }).catch(() => {});
+  await db.finding.deleteMany({ where: { assessmentId: id } }).catch(() => {});
+  await db.page.deleteMany({ where: { assessmentId: id } }).catch(() => {});
+  await db.assessment.delete({ where: { id } }).catch(() => {});
   await db.$disconnect();
 }

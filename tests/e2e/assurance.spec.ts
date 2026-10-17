@@ -1082,7 +1082,7 @@ test('keyboard navigation, focus trap prevention, focus visibility and accessibl
   // Keyboard fill and clear
   await page.keyboard.type('Keyboard Accessible Test');
   expect(await nameInput.inputValue()).toBe('Keyboard Accessible Test');
-  await page.keyboard.press('Meta+A');
+  await page.keyboard.press('ControlOrMeta+A');
   await page.keyboard.press('Backspace');
   expect(await nameInput.inputValue()).toBe('');
 });
