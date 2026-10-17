@@ -442,10 +442,22 @@ describe('Evidence-to-Requirement Integrity and Conformance Assurance', () => {
   });
 
   afterAll(async () => {
+    await db.reviewerDecision
+      .deleteMany({ where: { task: { assessmentId: { in: [assmAId, assmBId] } } } })
+      .catch(() => {});
+    await db.findingRequirement
+      .deleteMany({ where: { finding: { assessmentId: { in: [assmAId, assmBId] } } } })
+      .catch(() => {});
     await db.evidence
       .deleteMany({ where: { page: { assessmentId: { in: [assmAId, assmBId] } } } })
       .catch(() => {});
     await db.finding
+      .deleteMany({ where: { assessmentId: { in: [assmAId, assmBId] } } })
+      .catch(() => {});
+    await db.reviewTask
+      .deleteMany({ where: { assessmentId: { in: [assmAId, assmBId] } } })
+      .catch(() => {});
+    await db.report
       .deleteMany({ where: { assessmentId: { in: [assmAId, assmBId] } } })
       .catch(() => {});
     await db.page

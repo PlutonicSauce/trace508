@@ -27,8 +27,15 @@ async function reset() {
   await db.accountToken.deleteMany();
   await db.initialization.deleteMany();
   await db.projectEvent.deleteMany();
+  await db.reviewerDecision.deleteMany().catch(() => {});
+  await db.findingRequirement.deleteMany().catch(() => {});
   await db.evidence.deleteMany().catch(() => {});
+  await db.remediationRetest.deleteMany().catch(() => {});
+  await db.remediationEvent.deleteMany().catch(() => {});
+  await db.remediation.deleteMany().catch(() => {});
   await db.finding.deleteMany().catch(() => {});
+  await db.reviewTask.deleteMany().catch(() => {});
+  await db.report.deleteMany().catch(() => {});
   await db.page.deleteMany().catch(() => {});
   await db.assessment.deleteMany().catch(() => {});
 }
