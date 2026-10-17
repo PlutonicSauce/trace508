@@ -440,4 +440,22 @@ describe('Evidence-to-Requirement Integrity and Conformance Assurance', () => {
     const task = await db.reviewTask.findUniqueOrThrow({ where: { id: task143Id } });
     expect(task.status).toBe('resolved');
   });
+
+  afterAll(async () => {
+    await db.evidence
+      .deleteMany({ where: { page: { assessmentId: { in: [assmAId, assmBId] } } } })
+      .catch(() => {});
+    await db.finding
+      .deleteMany({ where: { assessmentId: { in: [assmAId, assmBId] } } })
+      .catch(() => {});
+    await db.page
+      .deleteMany({ where: { assessmentId: { in: [assmAId, assmBId] } } })
+      .catch(() => {});
+    await db.assessment.deleteMany({ where: { id: { in: [assmAId, assmBId] } } }).catch(() => {});
+    await db.project.deleteMany({ where: { id: { in: [projAId, projBId] } } }).catch(() => {});
+    await db.organization.deleteMany({ where: { id: { in: [orgAId, orgBId] } } }).catch(() => {});
+    await db.user
+      .deleteMany({ where: { organizationId: { in: [orgAId, orgBId] } } })
+      .catch(() => {});
+  });
 });

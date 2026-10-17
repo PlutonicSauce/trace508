@@ -27,6 +27,10 @@ async function reset() {
   await db.accountToken.deleteMany();
   await db.initialization.deleteMany();
   await db.projectEvent.deleteMany();
+  await db.evidence.deleteMany().catch(() => {});
+  await db.finding.deleteMany().catch(() => {});
+  await db.page.deleteMany().catch(() => {});
+  await db.assessment.deleteMany().catch(() => {});
 }
 async function token(adoptLegacy = false) {
   const t = randomBytes(32).toString('hex');

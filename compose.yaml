@@ -77,6 +77,7 @@ services:
     command: node --import tsx scripts/browser-server.ts
     environment:
       PLAYWRIGHT_BROWSERS_PATH: /ms-playwright
+      BROWSER_SANDBOX: ${BROWSER_SANDBOX:-false}
     networks: [browser_control]
     cap_drop: [ALL]
     security_opt: [no-new-privileges:true]
