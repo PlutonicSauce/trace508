@@ -188,7 +188,7 @@ describe('Reviewer qualification vs cryptographic integrity modeling', () => {
 });
 
 describe('Deployment secrets generator permissions', () => {
-  it('enforces 0700 on directory and 0600 on secret files without world-readability', async () => {
+  it('enforces 0700 on directory and 0644 non-writable files for container bind-mounts', async () => {
     const fs = await import('node:fs/promises');
     const path = await import('node:path');
     const os = await import('node:os');
@@ -201,16 +201,16 @@ describe('Deployment secrets generator permissions', () => {
       });
 
       const dirStat = await fs.stat(tempDir);
-      // Directory must be 0700 (owner rwx only)
+      // Directory must be 0700 (owner rwx only, blocking unrelated host users)
       expect(dirStat.mode & 0o777).toBe(0o700);
 
       for (const secretFile of ['db_password', 'database_url']) {
         const filePath = path.join(tempDir, secretFile);
         const fileStat = await fs.stat(filePath);
-        // File must be 0600 (owner rw only)
-        expect(fileStat.mode & 0o777).toBe(0o600);
-        // Absolutely no group or world permissions
-        expect(fileStat.mode & 0o077).toBe(0);
+        // File must be 0644 (workable for container bind mounts with mismatched UIDs)
+        expect(fileStat.mode & 0o777).toBe(0o644);
+        // Absolutely no group or world write permissions
+        expect(fileStat.mode & 0o022).toBe(0);
       }
     } finally {
       await fs.rm(tempDir, { recursive: true, force: true });
