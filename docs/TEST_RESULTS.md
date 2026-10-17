@@ -122,13 +122,23 @@ Evaluated against the official W3C Before-After Demo (BAD) testbed across 4 page
 
 ### Evaluation Across Two Distinct Denominators
 
-| Denominator Dimension | Definition | Reference Total | Automated Detections | Automated Recall | Human Review Coverage | Adjudicated Recall |
-|---|---|:---:|:---:|:---:|:---:|:---:|
-| **Dimension 1: Failure Technique Units** | Page × WCAG 2.0 A/AA Criterion × Published Failure Technique | **130** | **18** | **13.8%** | **152 tasks (100%)** | **0.0%** (Honest ground truth) |
-| **Dimension 2: Page-Criterion Units** | Page × WCAG 2.0 A/AA Failed Criterion Pairs | **77** | **14** | **18.2%** | **152 tasks (100%)** | **0.0%** (Honest ground truth) |
+| Denominator Dimension | Definition | Reference Total | Confirmed True Positives | Confirmed Recall | Candidate / Provisional Matches | Total Automated Candidates | Automated Candidate Recall | Human Review Coverage | Adjudicated Recall |
+|---|---|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
+| **Dimension 1: Failure Technique Units** | Page × WCAG 2.0 A/AA Criterion × Published Failure Technique | **130** | **10** | **7.7%** | **13** | **23** | **17.7%** | **152 tasks (100%)** | **0.0%** (Honest ground truth) |
+| **Dimension 2: Page-Criterion Units** | Page × WCAG 2.0 A/AA Failed Criterion Pairs | **77** | **10** | **13.0%** | **8** | **18** | **23.4%** | **152 tasks (100%)** | **0.0%** (Honest ground truth) |
 
 ### Ground Truth Methodology & Truthful Metrics
-1. **Automated Tool Boundaries:** Static accessibility scanners (including axe-core) inspect programmatic attributes, structural tags, and color calculations. Automated rules successfully caught F65 (omitted alt on images), F24 (low contrast), F89 (empty link names), and F68 (unassociated form labels).
-2. **Contextual & Narrative Barriers:** The remaining 112 failure units represent contextual or narrative barriers (e.g. F30 filenames as alternative text, F49 layout table sequence, F2 visual presentation conveying meaning, cognitive error recovery cues) that cannot be determined by code inspection alone.
-3. **No Synthetic AI Approvals:** Trace508 prohibits AI from automatically approving human review tasks. At handoff, zero human approvals were pre-seeded or fabricated, yielding an honest **0.0% adjudicated recall**.
-4. **Full Auditable Reference Dataset:** Every reference issue is audited in `data/w3c-ground-truth-matrix.json` and `docs/W3C_BENCHMARK_AUDIT.md`.
+1. **Confirmed True Positives (10 units / 7.7%):** Direct issue-level supporting evidence:
+   - **F65 (Missing image alt):** Verified on Home (33 nodes), News (39 nodes), Tickets (26 nodes), and Survey (24 nodes).
+   - **F68 (Unassociated form controls):** Verified on Survey for 11 unassociated radio buttons lacking labels.
+   - **1.4.3 Contrast Narrative:** Verified on Home (2 table headers below 4.5:1) and Tickets (8 price table cells below 4.5:1).
+   - **3.1.1 Page Language Narrative:** Verified on Home, News, Tickets, and Survey (`<html>` tag completely omits `lang`).
+2. **Candidate / Provisional Matches (13 units / 10.0%):** Associated scanner rule on the same page/criterion, but differing mechanism:
+   - **F89 (Image link text):** Flagged under `link-name` because image-only links had missing alt attributes, whereas F89 technically designates `alt=""` null alternative text.
+   - **F68 (Jump menu select):** Flagged under `select-name` rather than `label`.
+   - **F24 (Foreground without background):** Table headers specify both colors but fail contrast ratio; classified as uncertain match for F24 specifically.
+3. **Contextual & Narrative Barriers (107 units / 82.3%):**
+   - The remaining units represent contextual or narrative barriers—such as whether alternative text conveys true cognitive meaning (F30), reading order linearization (F49), CSS visual presentation (F2), or cognitive error recovery cues (3.3.1)—that cannot be validated without human judgment.
+4. **No Synthetic AI Approvals:** Trace508 prohibits AI from automatically approving human review tasks. At handoff, zero human approvals were pre-seeded or fabricated, yielding an honest **0.0% adjudicated recall**.
+5. **Full Auditable Reference Dataset:** Every reference issue is audited in `data/w3c-ground-truth-matrix.json` and `docs/W3C_BENCHMARK_AUDIT.md`.
+

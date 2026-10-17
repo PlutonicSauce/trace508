@@ -22,6 +22,7 @@
     "test:assurance": "playwright test tests/e2e/assurance.spec.ts",
     "retention:purge": "tsx scripts/purge-expired.ts",
     "bootstrap:issue": "node --import tsx scripts/bootstrap.ts",
+    "user:set-password": "node --import tsx scripts/set-password.ts",
     "lint": "prettier --check apps/web/app packages/core/src workers tests scripts/*.ts apps/web/next.config.ts"
   },
   "dependencies": {
