@@ -2143,7 +2143,7 @@ function ReviewForm({
 
         <div className="two-fields" style={{ marginTop: '12px' }}>
           <div>
-            <label htmlFor="reviewerQualification">Evaluator qualification</label>
+            <label htmlFor="reviewerQualification">Evaluator qualification (recorded claim)</label>
             <select
               id="reviewerQualification"
               value={reviewerQualification}
@@ -2163,9 +2163,16 @@ function ReviewForm({
                 Self-Attested Auditor (Unverified)
               </option>
             </select>
+            <p
+              className="field-hint"
+              style={{ fontSize: '11px', color: '#64748b', marginTop: '4px' }}
+            >
+              Recorded attestation. SHA-256 seals documented assessment work; does not independently
+              certify professional credentials.
+            </p>
           </div>
           <div>
-            <label htmlFor="methodology">Evaluation methodology</label>
+            <label htmlFor="methodology">Evaluation methodology (documented)</label>
             <select
               id="methodology"
               value={methodology}
@@ -2184,6 +2191,12 @@ function ReviewForm({
                 Manual Assistive Tech / Screen Reader
               </option>
             </select>
+            <p
+              className="field-hint"
+              style={{ fontSize: '11px', color: '#64748b', marginTop: '4px' }}
+            >
+              Standard testing protocol followed for this evaluation.
+            </p>
           </div>
         </div>
         <label htmlFor="observation">
