@@ -17,18 +17,20 @@ export function validateExplanation(value: unknown, findingId: string, evidenceI
     throw new Error('AI returned unsupported finding or evidence IDs.');
   return parsed;
 }
-export type AIProvider = 'none' | 'ollama' | 'gemini';
+export type AIProvider = 'none' | 'ollama' | 'gemini' | 'groq';
 export function aiConfiguration() {
   const provider = (process.env.AI_PROVIDER ?? 'none') as AIProvider;
-  if (!['none', 'ollama', 'gemini'].includes(provider)) throw new Error('Unsupported AI provider');
+  if (!['none', 'ollama', 'gemini', 'groq'].includes(provider))
+    throw new Error('Unsupported AI provider');
   return {
     provider,
     configured:
       provider === 'ollama' ||
       (provider === 'gemini' &&
         !!process.env.GEMINI_API_KEY &&
-        process.env.ALLOW_CLOUD_AI === 'true'),
-    external: provider === 'gemini',
+        process.env.ALLOW_CLOUD_AI === 'true') ||
+      (provider === 'groq' && !!process.env.GROQ_API_KEY && process.env.ALLOW_CLOUD_AI === 'true'),
+    external: provider === 'gemini' || provider === 'groq',
   };
 }
 const system =
@@ -49,7 +51,9 @@ export async function providerExplanation(
   const model =
     provider === 'ollama'
       ? (process.env.OLLAMA_MODEL ?? 'qwen2.5:3b')
-      : (process.env.GEMINI_MODEL ?? 'gemini-2.5-flash');
+      : provider === 'groq'
+        ? (process.env.GROQ_MODEL ?? 'llama-3.3-70b-versatile')
+        : (process.env.GEMINI_MODEL ?? 'gemini-2.5-flash');
   if (!/^[a-zA-Z0-9_.:/-]{1,100}$/.test(model)) throw new Error('Invalid model configuration');
   let endpoint: string,
     body: unknown,
@@ -70,6 +74,23 @@ export async function providerExplanation(
       prompt: JSON.stringify(input),
       format: z.toJSONSchema(explanationSchema),
       options: { temperature: 0.1, num_predict: 1600 },
+    };
+  } else if (provider === 'groq') {
+    if (!/^[a-zA-Z0-9_.:/-]+$/.test(model)) throw new Error('Invalid Groq model');
+    endpoint = 'https://api.groq.com/openai/v1/chat/completions';
+    headers['Authorization'] = `Bearer ${process.env.GROQ_API_KEY}`;
+    body = {
+      model,
+      temperature: 0.1,
+      max_tokens: 1800,
+      response_format: { type: 'json_object' },
+      messages: [
+        {
+          role: 'system',
+          content: `${system} Output must strictly be a JSON object adhering to this schema: ${JSON.stringify(z.toJSONSchema(explanationSchema))}`,
+        },
+        { role: 'user', content: JSON.stringify(input) },
+      ],
     };
   } else {
     if (!/^[a-zA-Z0-9.-]+$/.test(model)) throw new Error('Invalid Gemini model');
@@ -124,9 +145,11 @@ export async function providerExplanation(
   const content =
     provider === 'ollama'
       ? result.response
-      : result.candidates?.[0]?.content?.parts
-          ?.map((p: { text?: string }) => p.text ?? '')
-          .join('');
+      : provider === 'groq'
+        ? result.choices?.[0]?.message?.content
+        : result.candidates?.[0]?.content?.parts
+            ?.map((p: { text?: string }) => p.text ?? '')
+            .join('');
   if (!content) throw new Error('AI provider returned no explanation.');
   return {
     parsed: validateExplanation(JSON.parse(content), findingId, evidenceIds),

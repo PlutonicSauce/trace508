@@ -180,10 +180,67 @@ export function matrix(
     reviewGuide: string;
   }[],
 ) {
+  // Map evidence IDs from automated findings to their mapped requirements
+  const evidenceToFinding = new Map<
+    string,
+    { findingId: string; ruleId: string; requirements: string[] }
+  >();
+  for (const f of a.findings ?? []) {
+    const reqs = f.mappings?.map((m) => m.requirementId) ?? [];
+    for (const e of f.evidence ?? []) {
+      evidenceToFinding.set(e.id, { findingId: f.id, ruleId: f.ruleId, requirements: reqs });
+    }
+  }
+
   return rs.map((r) => {
-    const findings = a.findings.filter((f) => f.mappings.some((m) => m.requirementId === r.id));
-    const tasks = a.tasks.filter((t) => t.kind === 'criterion' && t.requirementId === r.id);
-    const resolved = tasks.filter((t) => t.status === 'resolved' && t.decisions[0]);
+    const findings = (a.findings ?? []).filter((f) =>
+      f.mappings?.some((m) => m.requirementId === r.id),
+    );
+    const tasks = (a.tasks ?? []).filter((t) => t.kind === 'criterion' && t.requirementId === r.id);
+
+    const integrityErrors: string[] = [];
+    const taskIntegrityErrors = new Set<string>();
+
+    // Inspect each task and its decisions for integrity and invalidation
+    for (const t of tasks) {
+      const activeDecision = t.decisions?.find((d) => !d.invalidatedAt);
+      const invalidatedDecisions = t.decisions?.filter((d) => d.invalidatedAt != null) ?? [];
+
+      if (!activeDecision && invalidatedDecisions.length > 0) {
+        const latestInv = invalidatedDecisions[0];
+        integrityErrors.push(
+          `Prior decision was invalidated (${latestInv.invalidationReason ?? 'review invalidation'}). Conformance conclusion withheld until re-reviewed.`,
+        );
+        taskIntegrityErrors.add(t.id);
+        continue;
+      }
+
+      if (activeDecision) {
+        const eids = Array.isArray(activeDecision.evidenceIds)
+          ? (activeDecision.evidenceIds as string[])
+          : [];
+
+        // Check whether any attached evidence belongs to a finding mapped to an unrelated criterion
+        for (const eid of eids) {
+          const findingInfo = evidenceToFinding.get(eid);
+          if (findingInfo && !findingInfo.requirements.includes(r.id)) {
+            const mapped = findingInfo.requirements.map((x) => `WCAG ${x}`).join(', ') || 'none';
+            const errorMsg = `Evidence ${eid} from automated rule "${findingInfo.ruleId}" maps to [${mapped}], not reviewed criterion WCAG ${r.id} (${r.title}). An automated finding cannot justify an unrelated accessibility criterion.`;
+            integrityErrors.push(errorMsg);
+            taskIntegrityErrors.add(t.id);
+            break;
+          }
+        }
+      }
+    }
+
+    const resolved = tasks.filter(
+      (t) =>
+        t.status === 'resolved' &&
+        t.decisions?.[0] &&
+        !t.decisions[0].invalidatedAt &&
+        !taskIntegrityErrors.has(t.id),
+    );
     const outcomes = resolved.map((t) => t.decisions[0].outcome);
     const contradictory =
       outcomes.some((o) => ['Supports', 'Not Applicable'].includes(o)) &&
@@ -193,16 +250,20 @@ export function matrix(
             (t) =>
               t.findingId === f.id &&
               t.status === 'resolved' &&
-              t.decisions[0]?.outcome === 'rejected',
+              t.decisions[0]?.outcome === 'rejected' &&
+              !t.decisions[0]?.invalidatedAt,
           ),
       );
     const mixed = new Set(outcomes).size > 1;
+    const hasIntegrityError = integrityErrors.length > 0;
     const ready =
       !mixed &&
+      !hasIntegrityError &&
       a.status === 'completed' &&
       tasks.length === a.pages.length &&
       resolved.length === tasks.length &&
       !contradictory;
+
     // Per-page decisions never silently aggregate into a product-wide positive statement.
     const conclusion = ready
       ? outcomes.every((o) => o === 'Not Applicable')
@@ -213,6 +274,7 @@ export function matrix(
             ? 'Does Not Support'
             : 'Partially Supports'
       : null;
+
     return {
       ...r,
       findings: findings.map((f) => f.id),
@@ -220,8 +282,10 @@ export function matrix(
         ...new Set([
           ...findings.flatMap((f) => f.evidence.map((e) => e.id)),
           ...resolved.flatMap((t) =>
-            Array.isArray(t.decisions[0].evidenceIds)
-              ? t.decisions[0].evidenceIds.filter((id): id is string => typeof id === 'string')
+            Array.isArray(t.decisions[0]?.evidenceIds)
+              ? (t.decisions[0].evidenceIds as string[]).filter(
+                  (id): id is string => typeof id === 'string',
+                )
               : [],
           ),
         ]),
@@ -235,6 +299,18 @@ export function matrix(
       conclusion,
       ready,
       contradictory,
+      integrityError: hasIntegrityError ? integrityErrors.join('; ') : null,
+      invalidatedDecisions: tasks.flatMap((t) =>
+        (t.decisions ?? [])
+          .filter((d) => d.invalidatedAt != null)
+          .map((d) => ({
+            id: d.id,
+            taskId: t.id,
+            reviewer: d.reviewer,
+            invalidatedAt: d.invalidatedAt,
+            invalidationReason: d.invalidationReason,
+          })),
+      ),
     };
   });
 }

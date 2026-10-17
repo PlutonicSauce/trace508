@@ -480,7 +480,16 @@ async function handle(request: Request, context: Context) {
       }
       if (p[0] === 'reviews' && p[1]) {
         requireRole(auth, ['reviewer', 'admin']);
-        return json(await saveDecision(p[1], { ...body, reviewer: who }));
+        return json(
+          await saveDecision(
+            p[1],
+            { ...body, reviewer: who },
+            {
+              user: auth.user,
+              projectId: auth.project.id,
+            },
+          ),
+        );
       }
       if (p[0] === 'findings' && p[2] === 'explain') {
         requireRole(auth, ['operator', 'reviewer', 'admin']);

@@ -115,11 +115,33 @@ export function benchmark(before: AssessmentDetail, after: AssessmentDetail) {
     candidateNumerator: issues.filter((i) => i.candidateFindingIds.length).length,
     verifiedNumerator,
     verifiedRecall,
-    unverifiedReferenceUnits:issues.length-verifiedNumerator,
-    referenceUnitsWithoutCandidate:issues.filter(i=>!i.candidateFindingIds.length).length,
-    validatedFalsePositives:{count:afterFindings.filter(f=>after.tasks.some(t=>t.findingId===f.id&&t.status==='resolved'&&t.decisions[0]?.outcome==='rejected')).length, adjudicated:afterFindings.filter(f=>after.tasks.some(t=>t.findingId===f.id&&t.status==='resolved')).length, totalCandidates:afterFindings.length},
-    automatedDetectionCoverage:{candidateUnits:issues.filter(i=>i.candidateFindingIds.length).length,totalReferenceUnits:issues.length,meaning:'Provisional category association, not validated instance recall'},
-    humanReviewCoverage:{resolvedCriterionTasks:before.tasks.filter(t=>t.kind==='criterion'&&t.status==='resolved').length,totalCriterionTasks:before.tasks.filter(t=>t.kind==='criterion').length},
+    unverifiedReferenceUnits: issues.length - verifiedNumerator,
+    referenceUnitsWithoutCandidate: issues.filter((i) => !i.candidateFindingIds.length).length,
+    validatedFalsePositives: {
+      count: afterFindings.filter((f) =>
+        after.tasks.some(
+          (t) =>
+            t.findingId === f.id &&
+            t.status === 'resolved' &&
+            t.decisions[0]?.outcome === 'rejected',
+        ),
+      ).length,
+      adjudicated: afterFindings.filter((f) =>
+        after.tasks.some((t) => t.findingId === f.id && t.status === 'resolved'),
+      ).length,
+      totalCandidates: afterFindings.length,
+    },
+    automatedDetectionCoverage: {
+      candidateUnits: issues.filter((i) => i.candidateFindingIds.length).length,
+      totalReferenceUnits: issues.length,
+      meaning: 'Provisional category association, not validated instance recall',
+    },
+    humanReviewCoverage: {
+      resolvedCriterionTasks: before.tasks.filter(
+        (t) => t.kind === 'criterion' && t.status === 'resolved',
+      ).length,
+      totalCriterionTasks: before.tasks.filter((t) => t.kind === 'criterion').length,
+    },
     issues,
     unmatchedBefore: beforeFindings.filter((f) => !candidateIds.has(f.id)).map((f) => f.id),
     afterFalsePositiveCandidates: afterFindings.map((f) => f.id),

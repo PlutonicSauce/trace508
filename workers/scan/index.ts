@@ -3,8 +3,15 @@ import { randomUUID } from 'node:crypto';
 import { db } from '../../packages/core/src/db';
 import { scanAssessment } from './scanner';
 import { claimJob, recoverInterrupted, renewLease, releaseLease } from './queue';
-let lastDatabaseSuccess=Date.now();
-const watchdog=setInterval(()=>{if(Date.now()-lastDatabaseSuccess>45000){console.error(JSON.stringify({event:"worker-database-stall",action:"exit-for-supervised-restart"}));process.exit(1);}},5000);
+let lastDatabaseSuccess = Date.now();
+const watchdog = setInterval(() => {
+  if (Date.now() - lastDatabaseSuccess > 45000) {
+    console.error(
+      JSON.stringify({ event: 'worker-database-stall', action: 'exit-for-supervised-restart' }),
+    );
+    process.exit(1);
+  }
+}, 5000);
 let stopping = false,
   failures = 0;
 const owner = randomUUID();
@@ -18,34 +25,48 @@ console.log(
 while (!stopping) {
   try {
     await recoverInterrupted();
-    lastDatabaseSuccess=Date.now();
+    lastDatabaseSuccess = Date.now();
     const id = await claimJob(owner);
     if (id) {
       let leaseError = false;
       const heartbeat = setInterval(
         () =>
-          void renewLease(owner, id).then(()=>{lastDatabaseSuccess=Date.now();}).catch(() => {
-            leaseError = true;
-          }),
+          void renewLease(owner, id)
+            .then(() => {
+              lastDatabaseSuccess = Date.now();
+            })
+            .catch(() => {
+              leaseError = true;
+            }),
         5000,
       );
-      const scanDeadline=setTimeout(()=>{console.error(JSON.stringify({event:'worker-job-stall',assessmentId:id,action:'exit-for-supervised-restart'}));process.exit(1);},135000);
+      const scanDeadline = setTimeout(() => {
+        console.error(
+          JSON.stringify({
+            event: 'worker-job-stall',
+            assessmentId: id,
+            action: 'exit-for-supervised-restart',
+          }),
+        );
+        process.exit(1);
+      }, 135000);
       try {
         await scanAssessment(id, { leaseValid: () => !leaseError });
       } finally {
-        clearInterval(heartbeat);clearTimeout(scanDeadline);
+        clearInterval(heartbeat);
+        clearTimeout(scanDeadline);
         await releaseLease(owner);
       }
     } else await new Promise((r) => setTimeout(r, 1500));
     failures = 0;
   } catch (e) {
     failures++;
-    await Promise.race([db.$disconnect(),new Promise(r=>setTimeout(r,3000))]);
+    await Promise.race([db.$disconnect(), new Promise((r) => setTimeout(r, 3000))]);
     console.error(
       JSON.stringify({
         event: 'worker-cycle-failed',
         type: e instanceof Error ? e.name : 'unknown',
-      code:e&&typeof e==='object'&&'code'in e?e.code:undefined,
+        code: e && typeof e === 'object' && 'code' in e ? e.code : undefined,
         retryInMs: Math.min(30000, 1000 * 2 ** Math.min(failures, 5)),
       }),
     );

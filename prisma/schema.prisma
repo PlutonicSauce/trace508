@@ -143,6 +143,8 @@ model ReviewerDecision {
  outcome String
  notes String
  evidenceIds Json
+ invalidatedAt DateTime?
+ invalidationReason String?
  createdAt DateTime @default(now())
 }
 model Remediation {
@@ -171,6 +173,7 @@ model Report {
  snapshot Json
  sha256 String
  path String
+ invalidationReason String?
  createdAt DateTime @default(now())
 }
 model AuditEvent {

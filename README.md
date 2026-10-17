@@ -75,8 +75,11 @@ In **Journey assurance**, create immutable definitions using only `goto`, `fill`
 
 - Findings and node evidence originate from real axe WCAG 2.0 A/AA execution. Page states also retain raw axe JSON, original DOM and screenshots.
 - Scan records include configuration, exact scope, axe/Playwright/Chromium versions, timestamps and failures.
+- **Evidence-to-Requirement Integrity**: Server-side validation strictly enforces that automated scanner findings can only justify criteria they map to (e.g. color-contrast evidence cannot justify image alternative-text WCAG 1.1.1 decisions). Unsupported submissions are rejected with HTTP 400 `EVIDENCE_CRITERION_MISMATCH`.
+- **Cryptographic Observations**: Qualified human observations require documented test steps, tools and results (minimum 30 characters) and generate permanent evidence records with canonical JSON SHA-256 hashing (`canonical-json-sha256-v1`).
+- **Report Integrity Dashboard** (`/?view=integrity`): Visualizes validated conformance claims, blocked assertions, pending reviews and the preserved audit log of historical invalidations.
 - **ACR reports** generates DOCX snapshots, evidence manifests and partial OpenACR JSON validated against the retained official GSA `openacr-0.1.0.json` schema and WCAG 2.0/508 catalog identifiers.
-- Unresolved OpenACR criteria omit adherence fields. Schema validity does not imply complete catalog coverage, conformance, official VPAT ratification or procurement readiness. Additional Section 508 chapter applicability remains unresolved.
+- Unresolved OpenACR criteria and criteria with integrity violations omit adherence fields. Schema validity does not imply complete catalog coverage, conformance, official VPAT ratification or procurement readiness. Additional Section 508 chapter applicability remains unresolved.
 - Report versions share a series across the original assessment and its retests. Changes list added/removed rule/page/state findings, new evidence IDs and changed criterion conclusions.
 - **Create evidence package** produces an independent ZIP with source files, screenshots, requirements, decisions and lifecycle data. Download its separate SHA-256 digest. These are hashes, not cryptographic signatures.
 

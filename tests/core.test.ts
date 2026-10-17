@@ -157,14 +157,15 @@ describe('evidence and living-report invariants', () => {
   });
 });
 
-
-describe('audited W3C reference denominator',()=>{
- it('retains mixed narrative barriers and preserves historical dataset separately',async()=>{
-  const {readFileSync}=await import('node:fs');
-  const current=JSON.parse(readFileSync('data/reference-issues.json','utf8'));
-  const old=JSON.parse(readFileSync('data/reference-issues-v1.json','utf8'));
-  expect(old.issues).toHaveLength(126);expect(current.issues).toHaveLength(130);
-  expect(current.issues.some((i:{id:string})=>i.id==='home:1.4.3:narrative')).toBe(true);
-  for(const source of current.sources)expect(hash(readFileSync('data/references/'+source.page+'.html'))).toBe(source.sha256);
- });
+describe('audited W3C reference denominator', () => {
+  it('retains mixed narrative barriers and preserves historical dataset separately', async () => {
+    const { readFileSync } = await import('node:fs');
+    const current = JSON.parse(readFileSync('data/reference-issues.json', 'utf8'));
+    const old = JSON.parse(readFileSync('data/reference-issues-v1.json', 'utf8'));
+    expect(old.issues).toHaveLength(126);
+    expect(current.issues).toHaveLength(130);
+    expect(current.issues.some((i: { id: string }) => i.id === 'home:1.4.3:narrative')).toBe(true);
+    for (const source of current.sources)
+      expect(hash(readFileSync('data/references/' + source.page + '.html'))).toBe(source.sha256);
+  });
 });

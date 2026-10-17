@@ -38,7 +38,7 @@ export function openacrDocument(
           components: [
             {
               name: 'web',
-              ...(r.conclusion
+              ...(r.conclusion && !r.integrityError
                 ? {
                     adherence: {
                       level: terms[r.conclusion],
@@ -50,6 +50,7 @@ export function openacrDocument(
           ],
         })),
     };
+  const integrityWarnings = snapshot.matrix.filter((r: any) => r.integrityError);
   const doc = {
     title: `${snapshot.assessment.name} Accessibility Conformance Report`,
     product: {
@@ -63,6 +64,9 @@ export function openacrDocument(
     catalog: '2.4-edition-wcag-2.0-508-en',
     notes:
       'INCOMPLETE DRAFT. Additional Section 508 chapter applicability remains unresolved. No procurement-ready or organizational approval is asserted. Unresolved criteria deliberately omit adherence. ' +
+      (integrityWarnings.length
+        ? `INTEGRITY WARNING: Conformance conclusions withheld for ${integrityWarnings.length} criteria due to unsupported or mismatched evidence: ${integrityWarnings.map((r: any) => r.id).join(', ')}. `
+        : '') +
       snapshot.chapterApplicability,
     evaluation_methods_used: snapshot.assessment.scanRuns
       .map((r: any) => `${r.scannerVersion}; browser ${r.browserVersion ?? 'not recorded'}`)

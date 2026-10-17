@@ -169,11 +169,16 @@ export async function generateReport(
           .map((r) => [
             `${r.id} ${r.title}`,
             r.conclusion ?? '',
-            `${r.ready ? 'Saved reviewer decisions for the scoped pages.' : 'DRAFT: human evaluation or ratification outstanding.'} Automated: ${r.automated}. Findings: ${r.findings.join(', ') || 'none recorded'}. Evidence: ${r.evidenceIds.length ? `${r.evidenceIds.slice(0, 3).join(', ')}${r.evidenceIds.length > 3 ? `; plus ${r.evidenceIds.length - 3} node records in companion manifest` : ''}` : 'see page scan evidence and reviewer manifest'}. ${a.tasks
-              .filter((t) => t.requirementId === r.id)
-              .flatMap((t) => t.decisions.slice(0, 1))
-              .map((d) => `${d.reviewer}: ${d.notes} [${(d.evidenceIds as string[]).join(', ')}]`)
-              .join(' ')}`,
+            r.integrityError
+              ? `BLOCKED BY INTEGRITY VIOLATION: ${r.integrityError}. Conformance claim withheld.`
+              : `${r.ready ? 'Saved reviewer decisions for the scoped pages.' : 'DRAFT: human evaluation or ratification outstanding.'} Automated: ${r.automated}. Findings: ${r.findings.join(', ') || 'none recorded'}. Evidence: ${r.evidenceIds.length ? `${r.evidenceIds.slice(0, 3).join(', ')}${r.evidenceIds.length > 3 ? `; plus ${r.evidenceIds.length - 3} node records in companion manifest` : ''}` : 'see page scan evidence and reviewer manifest'}. ${a.tasks
+                  .filter((t) => t.requirementId === r.id)
+                  .flatMap((t) => t.decisions.slice(0, 1))
+                  .map(
+                    (d) =>
+                      `${d.reviewer}${d.invalidatedAt ? ' [INVALIDATED]' : ''}: ${d.notes} [${((d.evidenceIds as string[]) || []).join(', ')}]`,
+                  )
+                  .join(' ')}`,
           ]),
       ]),
     );
@@ -257,6 +262,16 @@ export async function generateReport(
           'Report history changed during export. Generate a fresh version.',
         );
       const version = (prior?.version ?? 0) + 1;
+      if (prior) {
+        await tx.report.update({
+          where: { id: prior.id },
+          data: {
+            status: 'superseded',
+            invalidationReason:
+              prior.invalidationReason ?? `Superseded by draft report v${version}`,
+          },
+        });
+      }
       const generated = author.email ? openacrDocument(snapshot, author, version) : null;
       const changes = reportChanges(prior?.snapshot ?? null, snapshot);
       const report = await tx.report.create({
@@ -273,12 +288,13 @@ export async function generateReport(
           path: file,
         },
       });
+      const integrityCount = rows.filter((r) => r.integrityError).length;
       await tx.auditEvent.create({
         data: {
           assessmentId: id,
           action: 'draft-report-generated',
           actor: author.actor,
-          detail: `Report v${version} ${report.id}, SHA-256 ${digest}. ${rows.filter((r) => !r.ready).length} unresolved WCAG criteria; chapter applicability unresolved. OpenACR ${generated ? 'schema validated' : 'not exported: author contact missing'}.`,
+          detail: `Report v${version} ${report.id}, SHA-256 ${digest}. ${rows.filter((r) => !r.ready).length} unresolved WCAG criteria (${integrityCount ? integrityCount + ' withheld due to integrity violations; ' : ''}chapter applicability unresolved). OpenACR ${generated ? 'schema validated' : 'not exported: author contact missing'}.`,
         },
       });
       return report;

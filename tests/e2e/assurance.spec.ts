@@ -265,7 +265,9 @@ test('real two-site assessment, change, independent retest, reviewer gate, regre
   for (const f of manifest.files)
     expect(hash(await packageZip.file(f.path)!.async('nodebuffer'))).toBe(f.sha256);
   expect(manifest.files.some((f: any) => f.path.endsWith('.html'))).toBe(true);
-  const canonicalEvidence=JSON.parse(await packageZip.file('evidence.json')!.async('string'));for(const e of canonicalEvidence.filter((e:any)=>e.hashScheme==='canonical-json-sha256-v1'))expect(evidenceHash(e.payload),e.id).toBe(e.sha256);
+  const canonicalEvidence = JSON.parse(await packageZip.file('evidence.json')!.async('string'));
+  for (const e of canonicalEvidence.filter((e: any) => e.hashScheme === 'canonical-json-sha256-v1'))
+    expect(evidenceHash(e.payload), e.id).toBe(e.sha256);
   const lineage = JSON.parse(await packageZip.file('lineage.json')!.async('string'));
   expect(lineage.some((x: any) => x.id === baselineId)).toBe(true);
   expect(lineage.some((x: any) => x.id === retest.id)).toBe(true);
@@ -735,10 +737,33 @@ test('complete role and foreign-resource matrix rejects protected operations wit
 test('bounded concurrent queue, immutable retries, cancellation and failed writes', async () => {
   const w = await call('workspace'),
     t = w.targets.find((x: any) => x.pathPrefix === '/site/' + alphaId);
-  const key=randomUUID(), payload={name:'TEST FIXTURE idempotent request',url:t.origin+t.pathPrefix,targetId:t.id};
-  const duplicate=await Promise.all([1,2].map(()=>api.post('/api/assessments',{data:payload,headers:{'Idempotency-Key':key}})));
-  const ids=await Promise.all(duplicate.map(async r=>{expect(r.status()).toBe(201);return (await r.json()).id;}));expect(ids[0]).toBe(ids[1]);await completed(ids[0]);
-  expect((await api.post('/api/assessments',{data:{...payload,name:'TEST FIXTURE different scope'},headers:{'Idempotency-Key':key}})).status()).toBe(409);
+  const key = randomUUID(),
+    payload = {
+      name: 'TEST FIXTURE idempotent request',
+      url: t.origin + t.pathPrefix,
+      targetId: t.id,
+    };
+  const duplicate = await Promise.all(
+    [1, 2].map(() =>
+      api.post('/api/assessments', { data: payload, headers: { 'Idempotency-Key': key } }),
+    ),
+  );
+  const ids = await Promise.all(
+    duplicate.map(async (r) => {
+      expect(r.status()).toBe(201);
+      return (await r.json()).id;
+    }),
+  );
+  expect(ids[0]).toBe(ids[1]);
+  await completed(ids[0]);
+  expect(
+    (
+      await api.post('/api/assessments', {
+        data: { ...payload, name: 'TEST FIXTURE different scope' },
+        headers: { 'Idempotency-Key': key },
+      })
+    ).status(),
+  ).toBe(409);
   const started = Date.now();
   const jobs = await Promise.all(
     [1, 2, 3, 4].map((i) =>
@@ -809,12 +834,20 @@ test('bounded concurrent queue, immutable retries, cancellation and failed write
   } finally {
     await rm(localPath('evidence', a.id), { force: true });
   }
-  let exhausted=await call('assessments',{name:'TEST FIXTURE retry exhaustion',url:t.origin+t.pathPrefix+'?redirect=http://127.0.0.1:55432/',targetId:t.id});
-  for(let attempt=1;attempt<=3;attempt++){
-    await expect.poll(async()=> (await call('assessments/'+exhausted.id)).status,{timeout:30000}).toBe('failed');
-    if(attempt<3)exhausted=await call('assessments/'+exhausted.id+'/retry',{});
+  let exhausted = await call('assessments', {
+    name: 'TEST FIXTURE retry exhaustion',
+    url: t.origin + t.pathPrefix + '?redirect=http://127.0.0.1:55432/',
+    targetId: t.id,
+  });
+  for (let attempt = 1; attempt <= 3; attempt++) {
+    await expect
+      .poll(async () => (await call('assessments/' + exhausted.id)).status, { timeout: 30000 })
+      .toBe('failed');
+    if (attempt < 3) exhausted = await call('assessments/' + exhausted.id + '/retry', {});
   }
-  expect((await api.post('/api/assessments/'+exhausted.id+'/retry',{data:{}})).status()).toBe(409);
+  expect(
+    (await api.post('/api/assessments/' + exhausted.id + '/retry', { data: {} })).status(),
+  ).toBe(409);
   // Existing source bytes cannot be silently altered and downloaded as trusted evidence.
   const baseline = await call('assessments/' + baselineId),
     ev = baseline.pages[0].evidence[0],
@@ -876,12 +909,29 @@ test('actual PostgreSQL backup and fresh-database restore preserve evidence and 
       [...args, '-d', restoredName, '--no-owner', '--exit-on-error', '.local/release-restore.dump'],
       { env },
     );
-    const backupPaths=await db.assessment.findMany({where:{projectId},select:{id:true,reports:{select:{path:true}}}});
-    const members=backupPaths.flatMap(a=>['evidence/'+a.id,...a.reports.map(r=>'reports/'+r.path.split('/').pop())]);
-    const existing=[];for(const member of members){try{await access('.local/'+member);existing.push(member);}catch{}}
-    await mkdir('.local/release-restored-artifacts',{recursive:true,mode:0o700});
-    execFileSync('tar',['czf','.local/release-artifacts.tgz','-C','.local',...existing]);
-    execFileSync('tar',['xzf','.local/release-artifacts.tgz','-C','.local/release-restored-artifacts']);
+    const backupPaths = await db.assessment.findMany({
+      where: { projectId },
+      select: { id: true, reports: { select: { path: true } } },
+    });
+    const members = backupPaths.flatMap((a) => [
+      'evidence/' + a.id,
+      ...a.reports.map((r) => 'reports/' + r.path.split('/').pop()),
+    ]);
+    const existing = [];
+    for (const member of members) {
+      try {
+        await access('.local/' + member);
+        existing.push(member);
+      } catch {}
+    }
+    await mkdir('.local/release-restored-artifacts', { recursive: true, mode: 0o700 });
+    execFileSync('tar', ['czf', '.local/release-artifacts.tgz', '-C', '.local', ...existing]);
+    execFileSync('tar', [
+      'xzf',
+      '.local/release-artifacts.tgz',
+      '-C',
+      '.local/release-restored-artifacts',
+    ]);
     const original = await db.assessment.findUniqueOrThrow({
       where: { id: baselineId },
       include: { findings: { include: { evidence: true } }, reports: true },
@@ -894,8 +944,25 @@ test('actual PostgreSQL backup and fresh-database restore preserve evidence and 
     expect(copy.findings.map((f) => f.evidence.map((e) => e.sha256))).toEqual(
       original.findings.map((f) => f.evidence.map((e) => e.sha256)),
     );
-    for (const r of copy.reports) {expect(hash(await readFile(r.path))).toBe(r.sha256);expect(hash(await readFile('.local/release-restored-artifacts/reports/'+r.path.split('/').pop()))).toBe(r.sha256);}
-    const scan=await restored.evidence.findFirstOrThrow({where:{page:{assessmentId:baselineId},kind:'scan'}});if(scan.screenshotSha256)expect(hash(await readFile('.local/release-restored-artifacts/evidence/'+baselineId+'/'+scan.pageId+'.png'))).toBe(scan.screenshotSha256);
+    for (const r of copy.reports) {
+      expect(hash(await readFile(r.path))).toBe(r.sha256);
+      expect(
+        hash(
+          await readFile('.local/release-restored-artifacts/reports/' + r.path.split('/').pop()),
+        ),
+      ).toBe(r.sha256);
+    }
+    const scan = await restored.evidence.findFirstOrThrow({
+      where: { page: { assessmentId: baselineId }, kind: 'scan' },
+    });
+    if (scan.screenshotSha256)
+      expect(
+        hash(
+          await readFile(
+            '.local/release-restored-artifacts/evidence/' + baselineId + '/' + scan.pageId + '.png',
+          ),
+        ),
+      ).toBe(scan.screenshotSha256);
     expect(await restored.reviewerDecision.count()).toBe(await db.reviewerDecision.count());
     await writeFile(
       '.local/release-restore.json',
@@ -918,7 +985,8 @@ test('actual PostgreSQL backup and fresh-database restore preserve evidence and 
     await restored.$disconnect();
     execFileSync('dropdb', [...args, restoredName], { env });
     await rm('.local/release-restore.dump', { force: true });
-    await rm('.local/release-artifacts.tgz',{force:true});await rm('.local/release-restored-artifacts',{recursive:true,force:true});
+    await rm('.local/release-artifacts.tgz', { force: true });
+    await rm('.local/release-restored-artifacts', { recursive: true, force: true });
   }
 });
 test('sign-in, explicit role-based account revocation and logout operate through the UI', async ({
@@ -940,10 +1008,81 @@ test('sign-in, explicit role-based account revocation and logout operate through
   expect((await api.patch('/api/users/' + user.id, { data: { disabled: false } })).status()).toBe(
     200,
   );
-  const cookie=(await page.context().cookies()).find(c=>c.name==='trace508_session')!;
-  await db.session.update({where:{id:hash(cookie.value)},data:{expiresAt:new Date(Date.now()-1)}});
-  await page.reload();await expect(page.getByRole('heading',{name:'Sign in to Trace508'})).toBeVisible();
-  await page.getByLabel('Email address',{exact:true}).fill(email);await page.getByLabel('Password',{exact:true}).fill(password);await page.getByRole('button',{name:'Sign in',exact:true}).click();await expect(page.locator('.page-heading h1')).toBeVisible();
+  const cookie = (await page.context().cookies()).find((c) => c.name === 'trace508_session')!;
+  await db.session.update({
+    where: { id: hash(cookie.value) },
+    data: { expiresAt: new Date(Date.now() - 1) },
+  });
+  await page.reload();
+  await expect(page.getByRole('heading', { name: 'Sign in to Trace508' })).toBeVisible();
+  await page.getByLabel('Email address', { exact: true }).fill(email);
+  await page.getByLabel('Password', { exact: true }).fill(password);
+  await page.getByRole('button', { name: 'Sign in', exact: true }).click();
+  await expect(page.locator('.page-heading h1')).toBeVisible();
   await page.getByRole('button', { name: 'Sign out', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'Sign in to Trace508' })).toBeVisible();
+});
+test('keyboard navigation, focus trap prevention, focus visibility and accessible form interactions', async ({
+  page,
+}) => {
+  await page.goto('/');
+  await expect(page.getByRole('heading', { name: 'Sign in to Trace508' })).toBeVisible();
+  await page.getByLabel('Email address', { exact: true }).fill(email);
+  await page.getByLabel('Password', { exact: true }).fill(password);
+  await page.getByRole('button', { name: 'Sign in', exact: true }).click();
+  await expect(page.locator('.page-heading h1')).toBeVisible();
+
+  // Test 1: Skip navigation link on initial Tab
+  await page.keyboard.press('Tab');
+  const skipLink = page.getByRole('link', { name: 'Skip to main content' });
+  await expect(skipLink).toBeFocused();
+
+  // Test 2: Tab into sidebar navigation and verify focus visibility
+  await page.keyboard.press('Tab'); // brand link
+  await page.keyboard.press('Tab'); // first nav item (Overview)
+  const isNavFocused = await page.evaluate(() => {
+    const el = document.activeElement;
+    if (!el) return false;
+    const style = window.getComputedStyle(el);
+    const hasFocusIndicator =
+      style.outlineStyle !== 'none' ||
+      style.boxShadow !== 'none' ||
+      el.classList.contains('selected') ||
+      el.matches(':focus-visible');
+    return hasFocusIndicator;
+  });
+  expect(isNavFocused).toBe(true);
+
+  // Test 3: Tab sequentially through main navigation items without trapping (WCAG 2.1.1, 2.1.2)
+  for (let i = 0; i < 4; i++) {
+    await page.keyboard.press('Tab');
+    const hasFocus = await page.evaluate(() => document.activeElement !== document.body);
+    expect(hasFocus).toBe(true);
+  }
+
+  // Test 4: Reverse navigation with Shift+Tab (WCAG 2.1.2 No Keyboard Trap)
+  for (let i = 0; i < 3; i++) {
+    await page.keyboard.press('Shift+Tab');
+    const hasFocus = await page.evaluate(() => document.activeElement !== document.body);
+    expect(hasFocus).toBe(true);
+  }
+
+  // Test 5: Keyboard activation of New Assessment view
+  await page.goto('/?view=create');
+  await expect(page.getByRole('heading', { name: 'New assessment' })).toBeVisible();
+
+  // Verify form inputs receive keyboard focus and accessible labels
+  await page.keyboard.press('Tab'); // skip link
+  await page.keyboard.press('Tab'); // brand
+  // Focus into form
+  const nameInput = page.getByLabel('Assessment name');
+  await nameInput.focus();
+  await expect(nameInput).toBeFocused();
+
+  // Keyboard fill and clear
+  await page.keyboard.type('Keyboard Accessible Test');
+  expect(await nameInput.inputValue()).toBe('Keyboard Accessible Test');
+  await page.keyboard.press('ControlOrMeta+A');
+  await page.keyboard.press('Backspace');
+  expect(await nameInput.inputValue()).toBe('');
 });

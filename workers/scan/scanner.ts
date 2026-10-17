@@ -94,7 +94,10 @@ export async function scanAssessment(
           ],
         });
     await db.scanRun.update({ where: { id: run.id }, data: { browserVersion: browser.version() } });
-    let disconnected=false;browser.on('disconnected',()=>{disconnected=true;});
+    let disconnected = false;
+    browser.on('disconnected', () => {
+      disconnected = true;
+    });
     const context = await browser.newContext({
       viewport: { width: 1440, height: 1000 },
       serviceWorkers: 'block',
@@ -102,16 +105,41 @@ export async function scanAssessment(
       acceptDownloads: false,
     });
     const stop = () => context.close().catch(() => {});
-    const failBudget=async(message:string)=>db.$transaction(async tx=>{
-      const changed=await tx.assessment.updateMany({where:{id,status:'running'},data:{status:'failed',error:message,progress:'Browser interrupted'}});
-      if(changed.count){await tx.scanRun.updateMany({where:{id:run.id,status:'running'},data:{status:'failed',error:message,completedAt:new Date()}});await tx.journeyStepRun.updateMany({where:{assessmentId:id,status:'running'},data:{status:'failed',error:message,completedAt:new Date()}});await tx.auditEvent.create({data:{assessmentId:id,actor:'scan-worker',action:'browser-interrupted',detail:message}});}
-    });
-    timer = setTimeout(()=>{void failBudget('Hard scan runtime budget exhausted').catch(()=>{});void stop();},120000);
+    const failBudget = async (message: string) =>
+      db.$transaction(async (tx) => {
+        const changed = await tx.assessment.updateMany({
+          where: { id, status: 'running' },
+          data: { status: 'failed', error: message, progress: 'Browser interrupted' },
+        });
+        if (changed.count) {
+          await tx.scanRun.updateMany({
+            where: { id: run.id, status: 'running' },
+            data: { status: 'failed', error: message, completedAt: new Date() },
+          });
+          await tx.journeyStepRun.updateMany({
+            where: { assessmentId: id, status: 'running' },
+            data: { status: 'failed', error: message, completedAt: new Date() },
+          });
+          await tx.auditEvent.create({
+            data: {
+              assessmentId: id,
+              actor: 'scan-worker',
+              action: 'browser-interrupted',
+              detail: message,
+            },
+          });
+        }
+      });
+    timer = setTimeout(() => {
+      void failBudget('Hard scan runtime budget exhausted').catch(() => {});
+      void stop();
+    }, 120000);
     cancelled = setInterval(async () => {
       try {
         const s = await db.assessment.findUnique({ where: { id }, select: { status: true } });
-        if(disconnected)await failBudget('Chromium disconnected during assessment');
-        if (s?.status !== 'running' || options.leaseValid?.() === false || disconnected) await stop();
+        if (disconnected) await failBudget('Chromium disconnected during assessment');
+        if (s?.status !== 'running' || options.leaseValid?.() === false || disconnected)
+          await stop();
       } catch {
         await stop();
       }
@@ -440,7 +468,7 @@ export async function scanAssessment(
   } finally {
     if (timer) clearTimeout(timer);
     if (cancelled) clearInterval(cancelled);
-    await Promise.race([browser?.close().catch(()=>{}),new Promise(r=>setTimeout(r,5000))]);
+    await Promise.race([browser?.close().catch(() => {}), new Promise((r) => setTimeout(r, 5000))]);
   }
   await reconcileRetests(id);
 }
