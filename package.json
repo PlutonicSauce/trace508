@@ -1,0 +1,63 @@
+{
+  "name": "trace508",
+  "version": "1.0.0",
+  "private": true,
+  "workspaces": [
+    "apps/*"
+  ],
+  "scripts": {
+    "dev": "next dev apps/web --hostname 127.0.0.1",
+    "build": "prisma generate && next build apps/web --webpack",
+    "start": "next start apps/web --hostname 127.0.0.1",
+    "worker": "node --import tsx workers/scan/supervisor.ts",
+    "db:migrate": "node --import tsx scripts/migrate.ts",
+    "db:seed": "tsx scripts/seed.ts",
+    "test": "vitest run",
+    "test:e2e": "playwright test",
+    "typecheck": "tsc --noEmit",
+    "benchmark": "tsx scripts/benchmark.ts",
+    "format:check": "prettier --check apps/web/app packages/core/src workers/scan tests",
+    "test:failures": "tsx scripts/check-failures.ts",
+    "lab": "node --import tsx workers/lab/index.ts",
+    "test:assurance": "playwright test tests/e2e/assurance.spec.ts",
+    "retention:purge": "tsx scripts/purge-expired.ts",
+    "bootstrap:issue": "node --import tsx scripts/bootstrap.ts",
+    "lint": "prettier --check apps/web/app packages/core/src workers tests scripts/*.ts apps/web/next.config.ts"
+  },
+  "dependencies": {
+    "@axe-core/playwright": "^4.11.0",
+    "@prisma/client": "6.19.3",
+    "ajv": "^8.20.0",
+    "ajv-formats": "^3.0.1",
+    "argon2": "^0.45.1",
+    "axe-core": "^4.11.0",
+    "docx": "^9.5.0",
+    "ipaddr.js": "^2.2.0",
+    "jszip": "^3.10.2",
+    "lucide-react": "^0.468.0",
+    "next": "^16.4.2",
+    "playwright": "^1.58.0",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0",
+    "yaml": "^2.9.1",
+    "zod": "^4.3.0"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.58.0",
+    "@tailwindcss/postcss": "^4.1.0",
+    "@types/node": "^24.0.0",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "dotenv": "^17.2.0",
+    "prettier": "^3.9.10",
+    "prisma": "6.19.3",
+    "tailwindcss": "^4.1.0",
+    "tsx": "^4.21.0",
+    "typescript": "^5.9.0",
+    "vitest": "^4.0.0"
+  },
+  "type": "module",
+  "overrides": {
+    "deepmerge-ts": "^8.0.0"
+  }
+}

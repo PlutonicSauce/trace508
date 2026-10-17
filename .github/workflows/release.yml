@@ -1,0 +1,71 @@
+name: Release gates
+on: [push, pull_request, workflow_dispatch]
+permissions:
+  contents: read
+jobs:
+  application:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_PASSWORD: isolated_ci_only
+          POSTGRES_USER: trace508
+          POSTGRES_DB: trace508_release_test
+        ports: [5432:5432]
+        options: --health-cmd "pg_isready -U trace508" --health-interval 3s --health-retries 20
+    env:
+      DATABASE_URL: postgresql://trace508:isolated_ci_only@127.0.0.1:5432/trace508_release_test
+      APP_ORIGIN: http://127.0.0.1:3020
+      TEST_BASE_URL: http://127.0.0.1:3020
+      ENABLE_LAB: "true"
+      LAB_ORIGIN: http://127.0.0.1:4320
+      AI_PROVIDER: none
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: {node-version: 24, cache: npm}
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - run: npm run db:migrate && npm run db:seed
+      - run: npm run lint && npm run typecheck && npm test
+      - run: node --import tsx tests/integration/bootstrap.ts
+      - run: npm run build
+      - name: Real browser/API/accessibility/export gates
+        run: |
+          mkdir -p .local
+          node node_modules/next/dist/bin/next start apps/web --hostname 127.0.0.1 --port 3020 > .local/web.log 2>&1 &
+          node --import tsx workers/scan/index.ts > .local/worker.log 2>&1 &
+          echo $! > .local/worker.pid
+          npm run lab > .local/lab.log 2>&1 &
+          for i in $(seq 1 30); do curl -fsS http://127.0.0.1:3020/api/health && break || sleep 1; done
+          npm run test:assurance
+          kill "$(cat .local/worker.pid)"
+          sleep 2
+          node --import tsx tests/integration/worker-faults.ts
+          python3 scripts/verify-package.py .local/acceptance-evidence.zip "$(cat .local/acceptance-package.sha256)"
+          node --import tsx scripts/verify-openacr.ts .local/assurance.openacr.json
+      - run: npm audit --omit=dev --audit-level=high
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: release-test-results
+          path: |
+            .local/e2e-results.json
+            .local/release-load.json
+            .local/*.log
+  container:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - run: docker build -t trace508:rc .
+      - run: python3 scripts/deployment-secrets.py
+      - run: APP_ORIGIN=https://localhost:8443 SITE_ADDRESS=localhost docker compose -f compose.yaml -f deploy/compose.test.yaml up -d --wait
+      - run: curl --fail --insecure https://localhost:8443/api/health
+      - if: always()
+        run: APP_ORIGIN=https://localhost:8443 SITE_ADDRESS=localhost docker compose -f compose.yaml -f deploy/compose.test.yaml logs --no-color > container.log
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with: {name: container-log, path: container.log}

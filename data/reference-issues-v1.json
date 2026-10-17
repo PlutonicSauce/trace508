@@ -1,0 +1,911 @@
+{
+  "version": "w3c-bad-2012-failure-categories-v1",
+  "retrieved": "2026-10-17",
+  "unit": "page \u00d7 WCAG A/AA criterion \u00d7 published failure category (not individual DOM instances)",
+  "sources": [
+    {
+      "page": "home",
+      "url": "https://www.w3.org/WAI/demos/bad/before/reports/home.html",
+      "sha256": "0db3656ee7f3038ae829c9d01f758fb1d5f9d066531b1adb73bcefcfbde167e3"
+    },
+    {
+      "page": "news",
+      "url": "https://www.w3.org/WAI/demos/bad/before/reports/news.html",
+      "sha256": "a5879c6a560f0b8bb28335d848e26003378c46764f6b58e09f3364d6a01e9f2e"
+    },
+    {
+      "page": "tickets",
+      "url": "https://www.w3.org/WAI/demos/bad/before/reports/tickets.html",
+      "sha256": "892f1ba4e2d77dd0d7852fff56a6983bcb070c1908ab01331f335dd386564745"
+    },
+    {
+      "page": "survey",
+      "url": "https://www.w3.org/WAI/demos/bad/before/reports/survey.html",
+      "sha256": "b1e12aadaa22467307ffae3c36ad6349f983e4b0c18b0ff22c255213b27a3335"
+    }
+  ],
+  "issues": [
+    {
+      "id": "home:1.1.1:F3",
+      "page": "home",
+      "criterion": "1.1.1",
+      "failure": "F3",
+      "source": "https://www.w3.org/WAI/demos/bad/before/reports/home.html"
+    },
+    {
+      "id": "home:1.1.1:F20",
+      "page": "home",
+      "criterion": "1.1.1",
+      "failure": "F20",
+      "source": "https://www.w3.org/WAI/demos/bad/before/reports/home.html"
+    },
+    {
+      "id": "home:1.1.1:F30",
+      "page": "home",
+      "criterion": "1.1.1",
+      "failure": "F30",
+      "source": "https://www.w3.org/WAI/demos/bad/before/reports/home.html"
+    },
+    {
+      "id": "home:1.1.1:F38",
+      "page": "home",
+      "criterion": "1.1.1",
+      "failure": "F38",
+      "source": "https://www.w3.org/WAI/demos/bad/before/reports/home.html"
+    },
+    {
+      "id": "home:1.1.1:F39",
+      "page": "home",
+      "criterion": "1.1.1",
+      "failure": "F39",
+      "source": "https://www.w3.org/WAI/demos/bad/before/reports/home.html"
+    },
+    {
+      "id": "home:1.1.1:F65",
+      "page": "home",
+      "criterion": "1.1.1",
+      "failure": "F65",
+      "source": "https://www.w3.org/WAI/demos/bad/before/reports/home.html"
+    },
+    {
+      "id": "home:1.1.1:F71",
+      "page": "home",
+      "criterion": "1.1.1",
+      "failure": "F71",
+      "source": "https://www.w3.org/WAI/demos/bad/before/reports/home.html"
+    },
+    {
+      "id": "home:1.3.1:F2",
+      "page": "home",
+      "criterion": "1.3.1",
+      "failure": "F2",
+      "source": "https://www.w3.org/WAI/demos/bad/before/reports/home.html"
+    },
+    {
+      "id": "home:1.3.1:F68",
+      "page": "home",
+      "criterion": "1.3.1",
+      "failure": "F68",
+      "source": "https://www.w3.org/WAI/demos/bad/before/reports/home.html"
+    },
+    {
+      "id": "home:1.3.2:F1",
+      "page": "home",
+      "criterion": "1.3.2",
+      "failure": "F1",
+      "source": "https://www.w3.org/WAI/demos/bad/before/reports/home.html"
+    },
+    {
+      "id": "home:1.3.2:F49",
+      "page": "home",
+      "criterion": "1.3.2",
+      "failure": "F49",
+      "source": "https://www.w3.org/WAI/demos/bad/before/reports/home.html"
+    },
+    {
+      "id": "home:1.4.1:F73",
+      "page": "home",
+      "criterion": "1.4.1",
+      "failure": "F73",
+      "source": "https://www.w3.org/WAI/demos/bad/before/reports/home.html"
+    },
+    {
+      "id": "home:1.4.3:F24",
+      "page": "home",
+      "criterion": "1.4.3",
+      "failure": "F24",
+      "source": "https://www.w3.org/WAI/demos/bad/before/reports/home.html"
+    },
+    {
+      "id": "home:1.4.5:narrative",
+      "page": "home",
+      "criterion": "1.4.5",
+      "failure": "narrative",
+      "source": "https://www.w3.org/WAI/demos/bad/before/reports/home.html"
+    },
+    {
+      "id": "home:2.1.1:F54",
+      "page": "home",
+      "criterion": "2.1.1",
+      "failure": "F54",
+      "source": "https://www.w3.org/WAI/demos/bad/before/reports/home.html"
+    },
+    {
+      "id": "home:2.1.1:F55",
+      "page": "home",
+      "criterion": "2.1.1",
+      "failure": "F55",
+      "source": "https://www.w3.org/WAI/demos/bad/before/reports/home.html"
+    },
+    {
+      "id": "home:2.4.1:narrative",
+      "page": "home",
+      "criterion": "2.4.1",
+      "failure": "narrative",
+      "source": "https://www.w3.org/WAI/demos/bad/before/reports/home.html"
+    },
+    {
+      "id": "home:2.4.2:F25",
+      "page": "home",
+      "criterion": "2.4.2",
+      "failure": "F25",
+      "source": "https://www.w3.org/WAI/demos/bad/before/reports/home.html"
+    },
+    {
+      "id": "home:2.4.4:F63",
+      "page": "home",
+      "criterion": "2.4.4",
+      "failure": "F63",
+      "source": "https://www.w3.org/WAI/demos/bad/before/reports/home.html"
+    },
+    {
+      "id": "home:2.4.4:F89",
+      "page": "home",
+      "criterion": "2.4.4",
+      "failure": "F89",
+      "source": "https://www.w3.org/WAI/demos/bad/before/reports/home.html"
+    },
+    {
+      "id": "home:2.4.6:narrative",
+      "page": "home",
+      "criterion": "2.4.6",
+      "failure": "narrative",
+      "source": "https://www.w3.org/WAI/demos/bad/before/reports/home.html"
+    },
+    {
+      "id": "home:2.4.7:F55",
+      "page": "home",
+      "criterion": "2.4.7",
+      "failure": "F55",
+      "source": "https://www.w3.org/WAI/demos/bad/before/reports/home.html"
+    },
+    {
+      "id": "home:2.4.7:F78",
+      "page": "home",
+      "criterion": "2.4.7",
+      "failure": "F78",
+      "source": "https://www.w3.org/WAI/demos/bad/before/reports/home.html"
+    },
+    {
+      "id": "home:3.1.1:narrative",
+      "page": "home",
+      "criterion": "3.1.1",
+      "failure": "narrative",
+      "source": "https://www.w3.org/WAI/demos/bad/before/reports/home.html"
+    },
+    {
+      "id": "home:3.2.1:F55",
+      "page": "home",
+      "criterion": "3.2.1",
+      "failure": "F55",
+      "source": "https://www.w3.org/WAI/demos/bad/before/reports/home.html"
+    },
+    {
+      "id": "home:3.2.2:narrative",
+      "page": "home",
+      "criterion": "3.2.2",
+      "failure": "narrative",
+      "source": "https://www.w3.org/WAI/demos/bad/before/reports/home.html"
+    },
+    {
+      "id": "home:3.2.4:narrative",
+      "page": "home",
+      "criterion": "3.2.4",
+      "failure": "narrative",
+      "source": "https://www.w3.org/WAI/demos/bad/before/reports/home.html"
+    },
+    {
+      "id": "home:3.3.2:narrative",
+      "page": "home",
+      "criterion": "3.3.2",
+      "failure": "narrative",
+      "source": "https://www.w3.org/WAI/demos/bad/before/reports/home.html"
+    },
+    {
+      "id": "home:4.1.1:F70",
+      "page": "home",
+      "criterion": "4.1.1",
+      "failure": "F70",
+      "source": "https://www.w3.org/WAI/demos/bad/before/reports/home.html"
+    },
+    {
+      "id": "home:4.1.2:F68",
+      "page": "home",
+      "criterion": "4.1.2",
+      "failure": "F68",
+      "source": "https://www.w3.org/WAI/demos/bad/before/reports/home.html"
+    },
+    {
+      "id": "home:4.1.2:F79",
+      "page": "home",
+      "criterion": "4.1.2",
+      "failure": "F79",
+      "source": "https://www.w3.org/WAI/demos/bad/before/reports/home.html"
+    },
+    {
+      "id": "home:4.1.2:F89",
+      "page": "home",
+      "criterion": "4.1.2",
+      "failure": "F89",
+      "source": "https://www.w3.org/WAI/demos/bad/before/reports/home.html"
+    },
+    {
+      "id": "news:1.1.1:F20",
+      "page": "news",
+      "criterion": "1.1.1",
+      "failure": "F20",
+      "source": "https://www.w3.org/WAI/demos/bad/before/reports/news.html"
+    },
+    {
+      "id": "news:1.1.1:F30",
+      "page": "news",
+      "criterion": "1.1.1",
+      "failure": "F30",
+      "source": "https://www.w3.org/WAI/demos/bad/before/reports/news.html"
+    },
+    {
+      "id": "news:1.1.1:F38",
+      "page": "news",
+      "criterion": "1.1.1",
+      "failure": "F38",
+      "source": "https://www.w3.org/WAI/demos/bad/before/reports/news.html"
+    },
+    {
+      "id": "news:1.1.1:F39",
+      "page": "news",
+      "criterion": "1.1.1",
+      "failure": "F39",
+      "source": "https://www.w3.org/WAI/demos/bad/before/reports/news.html"
+    },
+    {
+      "id": "news:1.1.1:F65",
+      "page": "news",
+      "criterion": "1.1.1",
+      "failure": "F65",
+      "source": "https://www.w3.org/WAI/demos/bad/before/reports/news.html"
+    },
+    {
+      "id": "news:1.1.1:F71",
+      "page": "news",
+      "criterion": "1.1.1",
+      "failure": "F71",
+      "source": "https://www.w3.org/WAI/demos/bad/before/reports/news.html"
+    },
+    {
+      "id": "news:1.3.1:F2",
+      "page": "news",
+      "criterion": "1.3.1",
+      "failure": "F2",
+      "source": "https://www.w3.org/WAI/demos/bad/before/reports/news.html"
+    },
+    {
+      "id": "news:1.3.1:F43",
+      "page": "news",
+      "criterion": "1.3.1",
+      "failure": "F43",
+      "source": "https://www.w3.org/WAI/demos/bad/before/reports/news.html"
+    },
+    {
+      "id": "news:1.3.1:F68",
+      "page": "news",
+      "criterion": "1.3.1",
+      "failure": "F68",
+      "source": "https://www.w3.org/WAI/demos/bad/before/reports/news.html"
+    },
+    {
+      "id": "news:1.3.2:F1",
+      "page": "news",
+      "criterion": "1.3.2",
+      "failure": "F1",
+      "source": "https://www.w3.org/WAI/demos/bad/before/reports/news.html"
+    },
+    {
+      "id": "news:1.3.2:F49",
+      "page": "news",
+      "criterion": "1.3.2",
+      "failure": "F49",
+      "source": "https://www.w3.org/WAI/demos/bad/before/reports/news.html"
+    },
+    {
+      "id": "news:1.4.1:F73",
+      "page": "news",
+      "criterion": "1.4.1",
+      "failure": "F73",
+      "source": "https://www.w3.org/WAI/demos/bad/before/reports/news.html"
+    },
+    {
+      "id": "news:1.4.3:F24",
+      "page": "news",
+      "criterion": "1.4.3",
+      "failure": "F24",
+      "source": "https://www.w3.org/WAI/demos/bad/before/reports/news.html"
+    },
+    {
+      "id": "news:1.4.5:narrative",
+      "page": "news",
+      "criterion": "1.4.5",
+      "failure": "narrative",
+      "source": "https://www.w3.org/WAI/demos/bad/before/reports/news.html"
+    },
+    {
+      "id": "news:2.1.1:F54",
+      "page": "news",
+      "criterion": "2.1.1",
+      "failure": "F54",
+      "source": "https://www.w3.org/WAI/demos/bad/before/reports/news.html"
+    },
+    {
+      "id": "news:2.1.1:F55",
+      "page": "news",
+      "criterion": "2.1.1",
+      "failure": "F55",
+      "source": "https://www.w3.org/WAI/demos/bad/before/reports/news.html"
+    },
+    {
+      "id": "news:2.4.1:narrative",
+      "page": "news",
+      "criterion": "2.4.1",
+      "failure": "narrative",
+      "source": "https://www.w3.org/WAI/demos/bad/before/reports/news.html"
+    },
+    {
+      "id": "news:2.4.2:F25",
+      "page": "news",
+      "criterion": "2.4.2",
+      "failure": "F25",
+      "source": "https://www.w3.org/WAI/demos/bad/before/reports/news.html"
+    },
+    {
+      "id": "news:2.4.4:F89",
+      "page": "news",
+      "criterion": "2.4.4",
+      "failure": "F89",
+      "source": "https://www.w3.org/WAI/demos/bad/before/reports/news.html"
+    },
+    {
+      "id": "news:2.4.6:narrative",
+      "page": "news",
+      "criterion": "2.4.6",
+      "failure": "narrative",
+      "source": "https://www.w3.org/WAI/demos/bad/before/reports/news.html"
+    },
+    {
+      "id": "news:2.4.7:F55",
+      "page": "news",
+      "criterion": "2.4.7",
+      "failure": "F55",
+      "source": "https://www.w3.org/WAI/demos/bad/before/reports/news.html"
+    },
+    {
+      "id": "news:2.4.7:F78",
+      "page": "news",
+      "criterion": "2.4.7",
+      "failure": "F78",
+      "source": "https://www.w3.org/WAI/demos/bad/before/reports/news.html"
+    },
+    {
+      "id": "news:3.1.1:narrative",
+      "page": "news",
+      "criterion": "3.1.1",
+      "failure": "narrative",
+      "source": "https://www.w3.org/WAI/demos/bad/before/reports/news.html"
+    },
+    {
+      "id": "news:3.2.1:F55",
+      "page": "news",
+      "criterion": "3.2.1",
+      "failure": "F55",
+      "source": "https://www.w3.org/WAI/demos/bad/before/reports/news.html"
+    },
+    {
+      "id": "news:3.2.2:narrative",
+      "page": "news",
+      "criterion": "3.2.2",
+      "failure": "narrative",
+      "source": "https://www.w3.org/WAI/demos/bad/before/reports/news.html"
+    },
+    {
+      "id": "news:3.2.4:narrative",
+      "page": "news",
+      "criterion": "3.2.4",
+      "failure": "narrative",
+      "source": "https://www.w3.org/WAI/demos/bad/before/reports/news.html"
+    },
+    {
+      "id": "news:3.3.2:narrative",
+      "page": "news",
+      "criterion": "3.3.2",
+      "failure": "narrative",
+      "source": "https://www.w3.org/WAI/demos/bad/before/reports/news.html"
+    },
+    {
+      "id": "news:4.1.1:F70",
+      "page": "news",
+      "criterion": "4.1.1",
+      "failure": "F70",
+      "source": "https://www.w3.org/WAI/demos/bad/before/reports/news.html"
+    },
+    {
+      "id": "news:4.1.2:F68",
+      "page": "news",
+      "criterion": "4.1.2",
+      "failure": "F68",
+      "source": "https://www.w3.org/WAI/demos/bad/before/reports/news.html"
+    },
+    {
+      "id": "news:4.1.2:F79",
+      "page": "news",
+      "criterion": "4.1.2",
+      "failure": "F79",
+      "source": "https://www.w3.org/WAI/demos/bad/before/reports/news.html"
+    },
+    {
+      "id": "news:4.1.2:F89",
+      "page": "news",
+      "criterion": "4.1.2",
+      "failure": "F89",
+      "source": "https://www.w3.org/WAI/demos/bad/before/reports/news.html"
+    },
+    {
+      "id": "tickets:1.1.1:F20",
+      "page": "tickets",
+      "criterion": "1.1.1",
+      "failure": "F20",
+      "source": "https://www.w3.org/WAI/demos/bad/before/reports/tickets.html"
+    },
+    {
+      "id": "tickets:1.1.1:F30",
+      "page": "tickets",
+      "criterion": "1.1.1",
+      "failure": "F30",
+      "source": "https://www.w3.org/WAI/demos/bad/before/reports/tickets.html"
+    },
+    {
+      "id": "tickets:1.1.1:F38",
+      "page": "tickets",
+      "criterion": "1.1.1",
+      "failure": "F38",
+      "source": "https://www.w3.org/WAI/demos/bad/before/reports/tickets.html"
+    },
+    {
+      "id": "tickets:1.1.1:F39",
+      "page": "tickets",
+      "criterion": "1.1.1",
+      "failure": "F39",
+      "source": "https://www.w3.org/WAI/demos/bad/before/reports/tickets.html"
+    },
+    {
+      "id": "tickets:1.1.1:F65",
+      "page": "tickets",
+      "criterion": "1.1.1",
+      "failure": "F65",
+      "source": "https://www.w3.org/WAI/demos/bad/before/reports/tickets.html"
+    },
+    {
+      "id": "tickets:1.1.1:F71",
+      "page": "tickets",
+      "criterion": "1.1.1",
+      "failure": "F71",
+      "source": "https://www.w3.org/WAI/demos/bad/before/reports/tickets.html"
+    },
+    {
+      "id": "tickets:1.3.1:F2",
+      "page": "tickets",
+      "criterion": "1.3.1",
+      "failure": "F2",
+      "source": "https://www.w3.org/WAI/demos/bad/before/reports/tickets.html"
+    },
+    {
+      "id": "tickets:1.3.1:F46",
+      "page": "tickets",
+      "criterion": "1.3.1",
+      "failure": "F46",
+      "source": "https://www.w3.org/WAI/demos/bad/before/reports/tickets.html"
+    },
+    {
+      "id": "tickets:1.3.1:F68",
+      "page": "tickets",
+      "criterion": "1.3.1",
+      "failure": "F68",
+      "source": "https://www.w3.org/WAI/demos/bad/before/reports/tickets.html"
+    },
+    {
+      "id": "tickets:1.3.2:F49",
+      "page": "tickets",
+      "criterion": "1.3.2",
+      "failure": "F49",
+      "source": "https://www.w3.org/WAI/demos/bad/before/reports/tickets.html"
+    },
+    {
+      "id": "tickets:1.4.1:F73",
+      "page": "tickets",
+      "criterion": "1.4.1",
+      "failure": "F73",
+      "source": "https://www.w3.org/WAI/demos/bad/before/reports/tickets.html"
+    },
+    {
+      "id": "tickets:1.4.3:F24",
+      "page": "tickets",
+      "criterion": "1.4.3",
+      "failure": "F24",
+      "source": "https://www.w3.org/WAI/demos/bad/before/reports/tickets.html"
+    },
+    {
+      "id": "tickets:1.4.5:narrative",
+      "page": "tickets",
+      "criterion": "1.4.5",
+      "failure": "narrative",
+      "source": "https://www.w3.org/WAI/demos/bad/before/reports/tickets.html"
+    },
+    {
+      "id": "tickets:2.1.1:F54",
+      "page": "tickets",
+      "criterion": "2.1.1",
+      "failure": "F54",
+      "source": "https://www.w3.org/WAI/demos/bad/before/reports/tickets.html"
+    },
+    {
+      "id": "tickets:2.1.1:F55",
+      "page": "tickets",
+      "criterion": "2.1.1",
+      "failure": "F55",
+      "source": "https://www.w3.org/WAI/demos/bad/before/reports/tickets.html"
+    },
+    {
+      "id": "tickets:2.4.1:narrative",
+      "page": "tickets",
+      "criterion": "2.4.1",
+      "failure": "narrative",
+      "source": "https://www.w3.org/WAI/demos/bad/before/reports/tickets.html"
+    },
+    {
+      "id": "tickets:2.4.2:F25",
+      "page": "tickets",
+      "criterion": "2.4.2",
+      "failure": "F25",
+      "source": "https://www.w3.org/WAI/demos/bad/before/reports/tickets.html"
+    },
+    {
+      "id": "tickets:2.4.4:F63",
+      "page": "tickets",
+      "criterion": "2.4.4",
+      "failure": "F63",
+      "source": "https://www.w3.org/WAI/demos/bad/before/reports/tickets.html"
+    },
+    {
+      "id": "tickets:2.4.4:F89",
+      "page": "tickets",
+      "criterion": "2.4.4",
+      "failure": "F89",
+      "source": "https://www.w3.org/WAI/demos/bad/before/reports/tickets.html"
+    },
+    {
+      "id": "tickets:2.4.6:narrative",
+      "page": "tickets",
+      "criterion": "2.4.6",
+      "failure": "narrative",
+      "source": "https://www.w3.org/WAI/demos/bad/before/reports/tickets.html"
+    },
+    {
+      "id": "tickets:2.4.7:F55",
+      "page": "tickets",
+      "criterion": "2.4.7",
+      "failure": "F55",
+      "source": "https://www.w3.org/WAI/demos/bad/before/reports/tickets.html"
+    },
+    {
+      "id": "tickets:2.4.7:F78",
+      "page": "tickets",
+      "criterion": "2.4.7",
+      "failure": "F78",
+      "source": "https://www.w3.org/WAI/demos/bad/before/reports/tickets.html"
+    },
+    {
+      "id": "tickets:3.1.1:narrative",
+      "page": "tickets",
+      "criterion": "3.1.1",
+      "failure": "narrative",
+      "source": "https://www.w3.org/WAI/demos/bad/before/reports/tickets.html"
+    },
+    {
+      "id": "tickets:3.2.1:F55",
+      "page": "tickets",
+      "criterion": "3.2.1",
+      "failure": "F55",
+      "source": "https://www.w3.org/WAI/demos/bad/before/reports/tickets.html"
+    },
+    {
+      "id": "tickets:3.2.2:narrative",
+      "page": "tickets",
+      "criterion": "3.2.2",
+      "failure": "narrative",
+      "source": "https://www.w3.org/WAI/demos/bad/before/reports/tickets.html"
+    },
+    {
+      "id": "tickets:3.2.4:narrative",
+      "page": "tickets",
+      "criterion": "3.2.4",
+      "failure": "narrative",
+      "source": "https://www.w3.org/WAI/demos/bad/before/reports/tickets.html"
+    },
+    {
+      "id": "tickets:3.3.2:narrative",
+      "page": "tickets",
+      "criterion": "3.3.2",
+      "failure": "narrative",
+      "source": "https://www.w3.org/WAI/demos/bad/before/reports/tickets.html"
+    },
+    {
+      "id": "tickets:4.1.1:F70",
+      "page": "tickets",
+      "criterion": "4.1.1",
+      "failure": "F70",
+      "source": "https://www.w3.org/WAI/demos/bad/before/reports/tickets.html"
+    },
+    {
+      "id": "tickets:4.1.2:F68",
+      "page": "tickets",
+      "criterion": "4.1.2",
+      "failure": "F68",
+      "source": "https://www.w3.org/WAI/demos/bad/before/reports/tickets.html"
+    },
+    {
+      "id": "tickets:4.1.2:F79",
+      "page": "tickets",
+      "criterion": "4.1.2",
+      "failure": "F79",
+      "source": "https://www.w3.org/WAI/demos/bad/before/reports/tickets.html"
+    },
+    {
+      "id": "tickets:4.1.2:F89",
+      "page": "tickets",
+      "criterion": "4.1.2",
+      "failure": "F89",
+      "source": "https://www.w3.org/WAI/demos/bad/before/reports/tickets.html"
+    },
+    {
+      "id": "survey:1.1.1:F30",
+      "page": "survey",
+      "criterion": "1.1.1",
+      "failure": "F30",
+      "source": "https://www.w3.org/WAI/demos/bad/before/reports/survey.html"
+    },
+    {
+      "id": "survey:1.1.1:F38",
+      "page": "survey",
+      "criterion": "1.1.1",
+      "failure": "F38",
+      "source": "https://www.w3.org/WAI/demos/bad/before/reports/survey.html"
+    },
+    {
+      "id": "survey:1.1.1:F39",
+      "page": "survey",
+      "criterion": "1.1.1",
+      "failure": "F39",
+      "source": "https://www.w3.org/WAI/demos/bad/before/reports/survey.html"
+    },
+    {
+      "id": "survey:1.1.1:F65",
+      "page": "survey",
+      "criterion": "1.1.1",
+      "failure": "F65",
+      "source": "https://www.w3.org/WAI/demos/bad/before/reports/survey.html"
+    },
+    {
+      "id": "survey:1.1.1:F71",
+      "page": "survey",
+      "criterion": "1.1.1",
+      "failure": "F71",
+      "source": "https://www.w3.org/WAI/demos/bad/before/reports/survey.html"
+    },
+    {
+      "id": "survey:1.3.1:F2",
+      "page": "survey",
+      "criterion": "1.3.1",
+      "failure": "F2",
+      "source": "https://www.w3.org/WAI/demos/bad/before/reports/survey.html"
+    },
+    {
+      "id": "survey:1.3.1:F46",
+      "page": "survey",
+      "criterion": "1.3.1",
+      "failure": "F46",
+      "source": "https://www.w3.org/WAI/demos/bad/before/reports/survey.html"
+    },
+    {
+      "id": "survey:1.3.1:F68",
+      "page": "survey",
+      "criterion": "1.3.1",
+      "failure": "F68",
+      "source": "https://www.w3.org/WAI/demos/bad/before/reports/survey.html"
+    },
+    {
+      "id": "survey:1.3.2:F49",
+      "page": "survey",
+      "criterion": "1.3.2",
+      "failure": "F49",
+      "source": "https://www.w3.org/WAI/demos/bad/before/reports/survey.html"
+    },
+    {
+      "id": "survey:1.4.1:F73",
+      "page": "survey",
+      "criterion": "1.4.1",
+      "failure": "F73",
+      "source": "https://www.w3.org/WAI/demos/bad/before/reports/survey.html"
+    },
+    {
+      "id": "survey:1.4.1:F81",
+      "page": "survey",
+      "criterion": "1.4.1",
+      "failure": "F81",
+      "source": "https://www.w3.org/WAI/demos/bad/before/reports/survey.html"
+    },
+    {
+      "id": "survey:1.4.3:F24",
+      "page": "survey",
+      "criterion": "1.4.3",
+      "failure": "F24",
+      "source": "https://www.w3.org/WAI/demos/bad/before/reports/survey.html"
+    },
+    {
+      "id": "survey:1.4.5:narrative",
+      "page": "survey",
+      "criterion": "1.4.5",
+      "failure": "narrative",
+      "source": "https://www.w3.org/WAI/demos/bad/before/reports/survey.html"
+    },
+    {
+      "id": "survey:2.1.1:F54",
+      "page": "survey",
+      "criterion": "2.1.1",
+      "failure": "F54",
+      "source": "https://www.w3.org/WAI/demos/bad/before/reports/survey.html"
+    },
+    {
+      "id": "survey:2.1.1:F55",
+      "page": "survey",
+      "criterion": "2.1.1",
+      "failure": "F55",
+      "source": "https://www.w3.org/WAI/demos/bad/before/reports/survey.html"
+    },
+    {
+      "id": "survey:2.4.1:narrative",
+      "page": "survey",
+      "criterion": "2.4.1",
+      "failure": "narrative",
+      "source": "https://www.w3.org/WAI/demos/bad/before/reports/survey.html"
+    },
+    {
+      "id": "survey:2.4.2:F25",
+      "page": "survey",
+      "criterion": "2.4.2",
+      "failure": "F25",
+      "source": "https://www.w3.org/WAI/demos/bad/before/reports/survey.html"
+    },
+    {
+      "id": "survey:2.4.3:F85",
+      "page": "survey",
+      "criterion": "2.4.3",
+      "failure": "F85",
+      "source": "https://www.w3.org/WAI/demos/bad/before/reports/survey.html"
+    },
+    {
+      "id": "survey:2.4.4:F63",
+      "page": "survey",
+      "criterion": "2.4.4",
+      "failure": "F63",
+      "source": "https://www.w3.org/WAI/demos/bad/before/reports/survey.html"
+    },
+    {
+      "id": "survey:2.4.4:F89",
+      "page": "survey",
+      "criterion": "2.4.4",
+      "failure": "F89",
+      "source": "https://www.w3.org/WAI/demos/bad/before/reports/survey.html"
+    },
+    {
+      "id": "survey:2.4.6:narrative",
+      "page": "survey",
+      "criterion": "2.4.6",
+      "failure": "narrative",
+      "source": "https://www.w3.org/WAI/demos/bad/before/reports/survey.html"
+    },
+    {
+      "id": "survey:2.4.7:F55",
+      "page": "survey",
+      "criterion": "2.4.7",
+      "failure": "F55",
+      "source": "https://www.w3.org/WAI/demos/bad/before/reports/survey.html"
+    },
+    {
+      "id": "survey:2.4.7:F78",
+      "page": "survey",
+      "criterion": "2.4.7",
+      "failure": "F78",
+      "source": "https://www.w3.org/WAI/demos/bad/before/reports/survey.html"
+    },
+    {
+      "id": "survey:3.1.1:narrative",
+      "page": "survey",
+      "criterion": "3.1.1",
+      "failure": "narrative",
+      "source": "https://www.w3.org/WAI/demos/bad/before/reports/survey.html"
+    },
+    {
+      "id": "survey:3.2.1:F55",
+      "page": "survey",
+      "criterion": "3.2.1",
+      "failure": "F55",
+      "source": "https://www.w3.org/WAI/demos/bad/before/reports/survey.html"
+    },
+    {
+      "id": "survey:3.2.2:narrative",
+      "page": "survey",
+      "criterion": "3.2.2",
+      "failure": "narrative",
+      "source": "https://www.w3.org/WAI/demos/bad/before/reports/survey.html"
+    },
+    {
+      "id": "survey:3.2.4:narrative",
+      "page": "survey",
+      "criterion": "3.2.4",
+      "failure": "narrative",
+      "source": "https://www.w3.org/WAI/demos/bad/before/reports/survey.html"
+    },
+    {
+      "id": "survey:3.3.2:narrative",
+      "page": "survey",
+      "criterion": "3.3.2",
+      "failure": "narrative",
+      "source": "https://www.w3.org/WAI/demos/bad/before/reports/survey.html"
+    },
+    {
+      "id": "survey:4.1.1:F70",
+      "page": "survey",
+      "criterion": "4.1.1",
+      "failure": "F70",
+      "source": "https://www.w3.org/WAI/demos/bad/before/reports/survey.html"
+    },
+    {
+      "id": "survey:4.1.2:F68",
+      "page": "survey",
+      "criterion": "4.1.2",
+      "failure": "F68",
+      "source": "https://www.w3.org/WAI/demos/bad/before/reports/survey.html"
+    },
+    {
+      "id": "survey:4.1.2:F79",
+      "page": "survey",
+      "criterion": "4.1.2",
+      "failure": "F79",
+      "source": "https://www.w3.org/WAI/demos/bad/before/reports/survey.html"
+    },
+    {
+      "id": "survey:4.1.2:F89",
+      "page": "survey",
+      "criterion": "4.1.2",
+      "failure": "F89",
+      "source": "https://www.w3.org/WAI/demos/bad/before/reports/survey.html"
+    }
+  ]
+}

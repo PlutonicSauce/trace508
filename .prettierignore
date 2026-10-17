@@ -1,0 +1,8 @@
+node_modules
+.local
+.next
+apps/web/.next
+package-lock.json
+data/references
+*.tsbuildinfo
+test-results

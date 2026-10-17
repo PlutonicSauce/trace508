@@ -1,0 +1,127 @@
+name: trace508
+x-app: &app
+  build: .
+  image: trace508:rc
+  restart: unless-stopped
+  cap_drop: [ALL]
+  security_opt: [no-new-privileges:true]
+  read_only: true
+  tmpfs: [/tmp:size=256m,mode=1777]
+  secrets: [database_url]
+  environment: &app-env
+    DATABASE_URL_FILE: /run/secrets/database_url
+    TRACE508_ROOT: /app
+    APP_ORIGIN: ${APP_ORIGIN:?Set APP_ORIGIN to the exact HTTPS origin}
+    AI_PROVIDER: none
+    ENABLE_LAB: "false"
+    ARTIFACT_QUOTA_MB: "2048"
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: trace508
+      POSTGRES_PASSWORD_FILE: /run/secrets/db_password
+      POSTGRES_DB: trace508
+    secrets: [db_password]
+    networks: [data]
+    volumes: [postgres:/var/lib/postgresql/data]
+    healthcheck:
+      test: [CMD-SHELL, pg_isready -U trace508 -d trace508]
+      interval: 3s
+      timeout: 3s
+      retries: 30
+  migrate:
+    <<: *app
+    restart: "no"
+    command: sh -c "npm run db:migrate && npm run db:seed"
+    networks: [data]
+    depends_on:
+      db: {condition: service_healthy}
+  web:
+    <<: *app
+    command: npx next start apps/web --hostname 0.0.0.0
+    networks: [data, frontend]
+    mem_limit: 768m
+    cpus: 1
+    pids_limit: 128
+    volumes: [evidence:/app/.local]
+    healthcheck:
+      test: [CMD, node, -e, "fetch('http://127.0.0.1:3000/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+    depends_on:
+      migrate: {condition: service_completed_successfully}
+  worker:
+    <<: *app
+    init: true
+    stop_grace_period: 150s
+    mem_limit: 768m
+    cpus: 1
+    pids_limit: 128
+    command: npm run worker
+    environment:
+      <<: *app-env
+      BROWSER_WS_ENDPOINT: ws://browser:3333/scanner
+    networks: [data, browser_control]
+    volumes: [evidence:/app/.local]
+    depends_on:
+      migrate: {condition: service_completed_successfully}
+      browser: {condition: service_started}
+  browser:
+    image: trace508:rc
+    build: .
+    init: true
+    restart: unless-stopped
+    command: node --import tsx scripts/browser-server.ts
+    environment:
+      PLAYWRIGHT_BROWSERS_PATH: /ms-playwright
+    networks: [browser_control]
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    read_only: true
+    tmpfs: [/tmp:size=512m,mode=1777]
+    shm_size: 256m
+    mem_limit: 1g
+    cpus: 1
+    pids_limit: 256
+    depends_on: [egress]
+  egress:
+    image: trace508:rc
+    build: .
+    init: true
+    restart: unless-stopped
+    command: node --import tsx scripts/egress.ts
+    networks: [browser_control, outbound]
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    read_only: true
+    tmpfs: [/tmp:size=32m,mode=1777]
+    mem_limit: 192m
+    pids_limit: 64
+  proxy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    environment:
+      SITE_ADDRESS: ${SITE_ADDRESS:?Set SITE_ADDRESS}
+    ports: ["${HTTPS_BIND:-127.0.0.1:8443}:443"]
+    volumes: [./deploy/Caddyfile:/etc/caddy/Caddyfile:ro, caddy_data:/data, caddy_config:/config]
+    networks: [frontend, outbound]
+    depends_on:
+      web: {condition: service_healthy}
+secrets:
+  db_password:
+    file: ${SECRETS_DIR:-./.local/secrets}/db_password
+  database_url:
+    file: ${SECRETS_DIR:-./.local/secrets}/database_url
+networks:
+  data: {internal: true}
+  frontend: {internal: true}
+  browser_control: {internal: true}
+  outbound: {}
+volumes:
+  postgres:
+  evidence:
+  caddy_data:
+  caddy_config:

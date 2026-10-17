@@ -1,0 +1,375 @@
+generator client {
+ provider = "prisma-client-js"
+}
+datasource db {
+ provider = "postgresql"
+ url = env("DATABASE_URL")
+}
+model Assessment {
+ id String @id @default(uuid())
+ projectId String @default("default")
+ project Project @relation(fields:[projectId],references:[id])
+ targetId String?
+ target Target? @relation(fields:[targetId],references:[id])
+ parentId String?
+ rootId String?
+ journeyId String?
+ journey Journey? @relation(fields:[journeyId],references:[id])
+ configuration Json @default("{}")
+ requestKey String?
+ requestFingerprint String?
+ retryOf String?
+ attempt Int @default(1)
+ buildLabel String?
+ expiresAt DateTime?
+ name String
+ url String
+ variant String
+ status String @default("queued")
+ progress String @default("Waiting for scan worker")
+ error String?
+ createdAt DateTime @default(now())
+ updatedAt DateTime @updatedAt
+ pages Page[]
+ runs ScanRun[]
+ findings Finding[]
+ tasks ReviewTask[]
+ reports Report[]
+ events AuditEvent[]
+ benchmarkDecisions BenchmarkDecision[]
+ journeySteps JourneyStepRun[]
+ retests RemediationRetest[]
+ packages EvidencePackage[]
+ @@unique([projectId,requestKey])
+}
+model Page {
+ id String @id
+ assessmentId String
+ assessment Assessment @relation(fields:[assessmentId], references:[id], onDelete:Cascade)
+ url String
+ title String?
+ stateKey String @default("initial")
+ findings Finding[]
+ evidence Evidence[]
+ tasks ReviewTask[]
+}
+model ScanRun {
+ id String @id @default(uuid())
+ assessmentId String
+ assessment Assessment @relation(fields:[assessmentId],references:[id],onDelete:Cascade)
+ status String @default("running")
+ scannerVersion String
+ browserVersion String?
+ configuration Json @default("{}")
+ startedAt DateTime @default(now())
+ completedAt DateTime?
+ raw Json?
+ error String?
+}
+model Finding {
+ id String @id
+ assessmentId String
+ assessment Assessment @relation(fields:[assessmentId],references:[id],onDelete:Cascade)
+ pageId String
+ page Page @relation(fields:[pageId],references:[id])
+ ruleId String
+ impact String
+ description String
+ help String
+ helpUrl String
+ tags Json
+ evidence Evidence[]
+ mappings FindingRequirement[]
+ remediation Remediation?
+ ai Json?
+ createdAt DateTime @default(now())
+}
+model Evidence {
+ id String @id
+ pageId String
+ page Page @relation(fields:[pageId],references:[id])
+ findingId String?
+ finding Finding? @relation(fields:[findingId],references:[id])
+ kind String
+ selector String?
+ html String?
+ summary String
+ payload Json?
+ sha256 String
+ screenshot String?
+ screenshotSha256 String?
+ hashScheme String @default("legacy-json-sha256")
+ createdAt DateTime @default(now())
+}
+model Requirement {
+ id String @id
+ title String
+ level String
+ source String
+ section508 String
+ version String
+ reviewGuide String
+ mappings FindingRequirement[]
+ tasks ReviewTask[]
+}
+model FindingRequirement {
+ findingId String
+ finding Finding @relation(fields:[findingId],references:[id])
+ requirementId String
+ requirement Requirement @relation(fields:[requirementId],references:[id])
+ method String
+ version String
+ @@id([findingId,requirementId])
+}
+model ReviewTask {
+ id String @id
+ assessmentId String
+ assessment Assessment @relation(fields:[assessmentId],references:[id],onDelete:Cascade)
+ pageId String
+ page Page @relation(fields:[pageId],references:[id])
+ requirementId String
+ requirement Requirement @relation(fields:[requirementId],references:[id])
+ findingId String?
+ kind String
+ reason String
+ status String @default("open")
+ decisions ReviewerDecision[]
+}
+model ReviewerDecision {
+ id String @id @default(uuid())
+ taskId String
+ task ReviewTask @relation(fields:[taskId],references:[id],onDelete:Cascade)
+ reviewer String
+ outcome String
+ notes String
+ evidenceIds Json
+ createdAt DateTime @default(now())
+}
+model Remediation {
+ id String @id
+ findingId String @unique
+ finding Finding @relation(fields:[findingId],references:[id],onDelete:Cascade)
+ priority Int
+ status String @default("open")
+ guidance String
+ verification String
+ events RemediationEvent[]
+ retests RemediationRetest[]
+ updatedAt DateTime @updatedAt
+}
+model Report {
+ id String @id @default(uuid())
+ assessmentId String
+ assessment Assessment @relation(fields:[assessmentId],references:[id],onDelete:Cascade)
+ status String @default("draft")
+ seriesId String?
+ version Int @default(1)
+ previousId String?
+ changes Json?
+ openacr Json?
+ openacrValidation Json?
+ snapshot Json
+ sha256 String
+ path String
+ createdAt DateTime @default(now())
+}
+model AuditEvent {
+ id String @id @default(uuid())
+ assessmentId String
+ assessment Assessment @relation(fields:[assessmentId],references:[id],onDelete:Cascade)
+ action String
+ detail String
+ actor String
+ createdAt DateTime @default(now())
+}
+model BenchmarkDecision {
+ id String @id @default(uuid())
+ assessmentId String
+ assessment Assessment @relation(fields:[assessmentId],references:[id],onDelete:Cascade)
+ referenceId String
+ findingId String
+ reviewer String
+ outcome String
+ notes String
+ evidenceIds Json
+ createdAt DateTime @default(now())
+}
+
+model Organization {
+ id String @id @default(uuid())
+ name String
+ users User[]
+ projects Project[]
+}
+model Project {
+ id String @id @default(uuid())
+ organizationId String
+ organization Organization @relation(fields:[organizationId],references:[id])
+ name String
+ isFixture Boolean @default(false)
+ aiConsent Boolean @default(false)
+ retentionDays Int @default(90)
+ storageQuotaMb Int @default(512)
+ assessments Assessment[]
+ targets Target[]
+ journeys Journey[]
+ labSites LabSite[]
+ events ProjectEvent[]
+ sessions Session[]
+}
+model User {
+ id String @id @default(uuid())
+ organizationId String
+ organization Organization @relation(fields:[organizationId],references:[id])
+ email String @unique
+ name String
+ passwordHash String
+ role String
+ disabled Boolean @default(false)
+ createdAt DateTime @default(now())
+ sessions Session[]
+}
+model Session {
+ id String @id
+ userId String
+ user User @relation(fields:[userId],references:[id],onDelete:Cascade)
+ projectId String
+ project Project @relation(fields:[projectId],references:[id])
+ expiresAt DateTime
+ createdAt DateTime @default(now())
+}
+model LoginLimit {
+ id String @id
+ attempts Int @default(0)
+ resetAt DateTime
+}
+model ProjectEvent {
+ id String @id @default(uuid())
+ projectId String
+ project Project @relation(fields:[projectId],references:[id])
+ actor String
+ action String
+ detail String
+ createdAt DateTime @default(now())
+}
+model Target {
+ id String @id @default(uuid())
+ projectId String
+ project Project @relation(fields:[projectId],references:[id])
+ name String
+ origin String
+ pathPrefix String @default("/")
+ lab Boolean @default(false)
+ allowSubmission Boolean @default(false)
+ enabled Boolean @default(true)
+ createdAt DateTime @default(now())
+ assessments Assessment[]
+ journeys Journey[]
+}
+model Journey {
+ id String @id @default(uuid())
+ projectId String
+ project Project @relation(fields:[projectId],references:[id])
+ targetId String
+ target Target @relation(fields:[targetId],references:[id])
+ name String
+ version Int @default(1)
+ steps Json
+ allowSubmission Boolean @default(false)
+ createdAt DateTime @default(now())
+ assessments Assessment[]
+}
+model JourneyStepRun {
+ id String @id @default(uuid())
+ assessmentId String
+ assessment Assessment @relation(fields:[assessmentId],references:[id],onDelete:Cascade)
+ index Int
+ name String
+ action String
+ status String @default("running")
+ beforeUrl String
+ afterUrl String?
+ pageId String?
+ error String?
+ startedAt DateTime @default(now())
+ completedAt DateTime?
+}
+model RemediationEvent {
+ id String @id @default(uuid())
+ remediationId String
+ remediation Remediation @relation(fields:[remediationId],references:[id],onDelete:Cascade)
+ status String
+ actor String
+ notes String
+ evidenceIds Json @default("[]")
+ createdAt DateTime @default(now())
+}
+model RemediationRetest {
+ id String @id @default(uuid())
+ remediationId String
+ remediation Remediation @relation(fields:[remediationId],references:[id],onDelete:Cascade)
+ assessmentId String
+ assessment Assessment @relation(fields:[assessmentId],references:[id],onDelete:Cascade)
+ outcome String @default("awaiting-retest")
+ matchedFindingIds Json @default("[]")
+ explanation String?
+ createdAt DateTime @default(now())
+ completedAt DateTime?
+ @@unique([remediationId,assessmentId])
+}
+model EvidencePackage {
+ id String @id @default(uuid())
+ assessmentId String
+ assessment Assessment @relation(fields:[assessmentId],references:[id],onDelete:Cascade)
+ path String
+ sha256 String
+ manifest Json
+ createdAt DateTime @default(now())
+}
+model LabSite {
+ id String @id @default(uuid())
+ projectId String
+ project Project @relation(fields:[projectId],references:[id])
+ name String
+ revision Int @default(1)
+ revisions LabRevision[]
+}
+model LabRevision {
+ id String @id @default(uuid())
+ siteId String
+ site LabSite @relation(fields:[siteId],references:[id],onDelete:Cascade)
+ version Int
+ config Json
+ actor String
+ notes String
+ createdAt DateTime @default(now())
+ @@unique([siteId,version])
+}
+
+model Initialization {
+ id String @id @default("workspace")
+ tokenHash String?
+ expiresAt DateTime?
+ completedAt DateTime?
+ organizationId String?
+ adoptLegacy Boolean @default(false)
+}
+model AccountToken {
+ id String @id
+ email String
+ name String
+ organizationId String
+ role String
+ userId String?
+ purpose String
+ expiresAt DateTime
+ usedAt DateTime?
+ createdAt DateTime @default(now())
+}
+model WorkerLease {
+ id String @id
+ owner String
+ assessmentId String?
+ heartbeatAt DateTime @default(now())
+ expiresAt DateTime
+}
