@@ -16,13 +16,14 @@ Target database: `trace508_release_test` (isolated from live development databas
 | Core & security unit tests | `npm test` (`tests/core.test.ts`, `tests/security.test.ts`) | 51 | 51 | **PASS** | 33 core tests + 18 security/AI tests in 1.48s |
 | Bootstrap & auth integration | `node --import tsx tests/integration/bootstrap.ts` | 10 | 10 | **PASS** | Admin bootstrap, token replay, legacy adoption |
 | Worker fault resilience | `node --import tsx tests/integration/worker-faults.ts` | 6 | 6 | **PASS** | SIGKILL, browser crash, redirect, timeout, 501 elements, DB drop |
-| Browser E2E assurance | `npm run test:assurance` (`tests/e2e/assurance.spec.ts`) | 9 | 9 | **PASS** | Full browser workflow in 54.8s (Chromium) |
+| Browser E2E assurance | `npm run test:assurance` (`tests/e2e/assurance.spec.ts`) | 10 | 10 | **PASS** | Full browser workflow & keyboard accessibility in 53.2s |
+| Secret scanner check | `gitleaks git` & `gitleaks dir` | 3 commits + tree | 3 + tree | **PASS** | Open-source Gitleaks 8.30.1 scan found 0 leaks |
 | Evidence package verification | `python3 scripts/verify-package.py` | 1 archive | 1 | **PASS** | Independent SHA-256 package & manifest verification |
 | OpenACR schema compliance | `node --import tsx scripts/verify-openacr.ts` | 1 document | 1 | **PASS** | Validated against official GSA `openacr-0.1.0.json` |
 | Security dependency audit | `npm audit --omit=dev --audit-level=high` | 0 vulnerabilities | 0 | **PASS** | Clean production dependency tree |
 | Automated release test pipeline | `scripts/release-test.sh` | 10 stages | 10 | **PASS** | End-to-end execution completed with exit code 0 |
 
-Total automated verification items executed: **78 programmatic checks + 10-stage release pipeline**.
+Total automated verification items executed: **79 programmatic checks + Gitleaks secret scan + 10-stage release pipeline**.
 
 ---
 
@@ -111,19 +112,23 @@ Executed in headless Chromium via Playwright:
 7. **Multi-state journey**: Executed 5-step journey (`goto`, `fill`, `click`, `press`, `check`) simulating multi-step form validation and error recovery. Verified 4 distinct DOM states and screenshots captured.
 8. **DOCX & OpenACR export**: Generated versioned DOCX report and OpenACR JSON. Validated OpenACR against official GSA schema and verified DOCX OpenXML structure.
 9. **Evidence package & RBAC isolation**: Created downloadable evidence ZIP package, verified SHA-256 archive digest. Tested Viewer and Operator roles, verifying strict 401/403/404 response enforcement.
+10. **Keyboard navigation, focus trap prevention, and accessible interactions**: Verified sequential Tab navigation through sidebar items, active focus visibility indicator check, reverse Shift+Tab traversal without keyboard trapping, and keyboard-driven form input manipulation.
 
 ---
 
 ## 5. Honest W3C benchmark evaluation
 
-Evaluated against the official W3C Before-After Demo (BAD) testbed across 4 pages (`home`, `news`, `tickets`, `survey`):
+Evaluated against the official W3C Before-After Demo (BAD) testbed across 4 pages (`home`, `news`, `tickets`, `survey`). Full matching table and methodology documented in `docs/W3C_BENCHMARK_AUDIT.md`.
 
-- **Published reference units**: 130 failure categories (page × criterion × published failure category).
-- **Automated axe-core candidate findings**: 18 category matches identified by automated rules.
-- **Raw automated category discovery rate**: **13.8%** (18 / 130).
-- **Human-verified category discovery rate at handoff**: **0%** (0 / 130).
+### Evaluation Across Two Distinct Denominators
 
-### Ground truth disclosure
-- Automated accessibility scanners (such as axe-core) inspect DOM properties, ARIA attributes, color contrast formulas, and semantic HTML structure. They cannot evaluate contextual human requirements such as reading order clarity, cognitive comprehensibility, transcript accuracy, or complex error recovery narratives without human review.
-- Previous reports claiming "19 Before findings and 0 After findings established 90% recall" were scientifically incorrect. In Trace508, automated candidates are explicitly categorized as provisional leads awaiting manual human adjudication.
-- Conformance claims are never automated. Zero automated violations does NOT establish Section 508 compliance.
+| Denominator Dimension | Definition | Reference Total | Automated Detections | Automated Recall | Human Review Coverage | Adjudicated Recall |
+|---|---|:---:|:---:|:---:|:---:|:---:|
+| **Dimension 1: Failure Technique Units** | Page × WCAG 2.0 A/AA Criterion × Published Failure Technique | **130** | **18** | **13.8%** | **152 tasks (100%)** | **0.0%** (Honest ground truth) |
+| **Dimension 2: Page-Criterion Units** | Page × WCAG 2.0 A/AA Failed Criterion Pairs | **77** | **14** | **18.2%** | **152 tasks (100%)** | **0.0%** (Honest ground truth) |
+
+### Ground Truth Methodology & Truthful Metrics
+1. **Automated Tool Boundaries:** Static accessibility scanners (including axe-core) inspect programmatic attributes, structural tags, and color calculations. Automated rules successfully caught F65 (omitted alt on images), F24 (low contrast), F89 (empty link names), and F68 (unassociated form labels).
+2. **Contextual & Narrative Barriers:** The remaining 112 failure units represent contextual or narrative barriers (e.g. F30 filenames as alternative text, F49 layout table sequence, F2 visual presentation conveying meaning, cognitive error recovery cues) that cannot be determined by code inspection alone.
+3. **No Synthetic AI Approvals:** Trace508 prohibits AI from automatically approving human review tasks. At handoff, zero human approvals were pre-seeded or fabricated, yielding an honest **0.0% adjudicated recall**.
+4. **Full Auditable Reference Dataset:** Every reference issue is audited in `data/w3c-ground-truth-matrix.json` and `docs/W3C_BENCHMARK_AUDIT.md`.

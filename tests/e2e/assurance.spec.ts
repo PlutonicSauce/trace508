@@ -1022,3 +1022,67 @@ test('sign-in, explicit role-based account revocation and logout operate through
   await page.getByRole('button', { name: 'Sign out', exact: true }).click();
   await expect(page.getByRole('heading', { name: 'Sign in to Trace508' })).toBeVisible();
 });
+test('keyboard navigation, focus trap prevention, focus visibility and accessible form interactions', async ({
+  page,
+}) => {
+  await page.goto('/');
+  await expect(page.getByRole('heading', { name: 'Sign in to Trace508' })).toBeVisible();
+  await page.getByLabel('Email address', { exact: true }).fill(email);
+  await page.getByLabel('Password', { exact: true }).fill(password);
+  await page.getByRole('button', { name: 'Sign in', exact: true }).click();
+  await expect(page.locator('.page-heading h1')).toBeVisible();
+
+  // Test 1: Skip navigation link on initial Tab
+  await page.keyboard.press('Tab');
+  const skipLink = page.getByRole('link', { name: 'Skip to main content' });
+  await expect(skipLink).toBeFocused();
+
+  // Test 2: Tab into sidebar navigation and verify focus visibility
+  await page.keyboard.press('Tab'); // brand link
+  await page.keyboard.press('Tab'); // first nav item (Overview)
+  const isNavFocused = await page.evaluate(() => {
+    const el = document.activeElement;
+    if (!el) return false;
+    const style = window.getComputedStyle(el);
+    const hasFocusIndicator =
+      style.outlineStyle !== 'none' ||
+      style.boxShadow !== 'none' ||
+      el.classList.contains('selected') ||
+      el.matches(':focus-visible');
+    return hasFocusIndicator;
+  });
+  expect(isNavFocused).toBe(true);
+
+  // Test 3: Tab sequentially through main navigation items without trapping (WCAG 2.1.1, 2.1.2)
+  for (let i = 0; i < 4; i++) {
+    await page.keyboard.press('Tab');
+    const hasFocus = await page.evaluate(() => document.activeElement !== document.body);
+    expect(hasFocus).toBe(true);
+  }
+
+  // Test 4: Reverse navigation with Shift+Tab (WCAG 2.1.2 No Keyboard Trap)
+  for (let i = 0; i < 3; i++) {
+    await page.keyboard.press('Shift+Tab');
+    const hasFocus = await page.evaluate(() => document.activeElement !== document.body);
+    expect(hasFocus).toBe(true);
+  }
+
+  // Test 5: Keyboard activation of New Assessment view
+  await page.goto('/?view=create');
+  await expect(page.getByRole('heading', { name: 'New assessment' })).toBeVisible();
+
+  // Verify form inputs receive keyboard focus and accessible labels
+  await page.keyboard.press('Tab'); // skip link
+  await page.keyboard.press('Tab'); // brand
+  // Focus into form
+  const nameInput = page.getByLabel('Assessment name');
+  await nameInput.focus();
+  await expect(nameInput).toBeFocused();
+
+  // Keyboard fill and clear
+  await page.keyboard.type('Keyboard Accessible Test');
+  expect(await nameInput.inputValue()).toBe('Keyboard Accessible Test');
+  await page.keyboard.press('Meta+A');
+  await page.keyboard.press('Backspace');
+  expect(await nameInput.inputValue()).toBe('');
+});

@@ -1,0 +1,10 @@
+[allowlist]
+paths = [
+  '''^\.next/''',
+  '''^apps/web/\.next/''',
+  '''^node_modules/''',
+  '''^\.local/''',
+  '''^coverage/''',
+  '''^test-results/''',
+  '''^playwright-report/'''
+]

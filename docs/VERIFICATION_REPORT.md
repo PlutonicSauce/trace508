@@ -4,7 +4,7 @@
 
 Verification date: 2026-10-17. All test data is isolated in a temporary organization/project explicitly marked TEST FIXTURE; temporary accounts, reviewer actions, lab builds, assessments and artifact records are removed afterward. Real production/user decisions are never seeded.
 
-Executed final results: **51 unit/security tests, 10 bootstrap integration tests, 6 worker-fault resilience tests, and 9 end-to-end tests passed**. TypeScript (`tsc --noEmit`), Prettier formatting, and the production build passed. The native application, background workers, and PostgreSQL remain available; the initial real W3C evidence is preserved.
+Executed final results: **51 unit/security tests, 10 bootstrap integration tests, 6 worker-fault resilience tests, and 10 end-to-end browser tests passed**. Open-source Gitleaks 8.30.1 secret scanning verified zero leaks in Git history and source code. TypeScript (`tsc --noEmit`), Prettier formatting, and the Next.js production build passed. The native application, background workers, and PostgreSQL remain available; the initial real W3C evidence is preserved.
 
 ## Implemented and executed
 
