@@ -58,6 +58,9 @@ jobs:
   container:
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    env:
+      APP_ORIGIN: https://localhost:8443
+      SITE_ADDRESS: localhost
     steps:
       - uses: actions/checkout@v4
       - run: docker build -t trace508:rc .

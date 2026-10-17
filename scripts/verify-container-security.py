@@ -17,6 +17,10 @@ def run(cmd, check=True):
     return res
 
 
+os.environ.setdefault("APP_ORIGIN", "https://localhost:8443")
+os.environ.setdefault("SITE_ADDRESS", "localhost")
+
+
 def main():
     print("=== TRACE508 CONTAINER SECURITY & SANDBOX VERIFICATION ===\n")
     checks = 0

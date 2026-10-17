@@ -11,7 +11,7 @@ x-app: &app
   environment: &app-env
     DATABASE_URL_FILE: /run/secrets/database_url
     TRACE508_ROOT: /app
-    APP_ORIGIN: ${APP_ORIGIN:?Set APP_ORIGIN to the exact HTTPS origin}
+    APP_ORIGIN: ${APP_ORIGIN:-http://127.0.0.1:3000}
     AI_PROVIDER: none
     ENABLE_LAB: "false"
     ARTIFACT_QUOTA_MB: "2048"
