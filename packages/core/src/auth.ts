@@ -112,7 +112,12 @@ export async function login(value: unknown) {
     });
     throw new AppError(401, 'INVALID_CREDENTIALS', 'Invalid email or password.');
   }
-  if([...d.password.normalize('NFC')].length<15)throw new AppError(403,'PASSWORD_UPGRADE_REQUIRED','Your password must be replaced through an administrator-issued recovery token before signing in.');
+  if ([...d.password.normalize('NFC')].length < 15)
+    throw new AppError(
+      403,
+      'PASSWORD_UPGRADE_REQUIRED',
+      'Your password must be replaced through an administrator-issued recovery token before signing in.',
+    );
   await db.loginLimit.deleteMany({ where: { id: key } });
   if (!u.passwordHash.startsWith('$argon2id$') && [...d.password].length >= 15)
     await db.user.update({

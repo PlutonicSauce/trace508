@@ -201,8 +201,20 @@ export async function verifyRemediation(id: string, value: unknown, actor: strin
         pageId: p.id,
         kind: 'human-remediation-verification',
         summary: d.notes,
-        payload: { actor, remediationId: id, retestId: last.id, outcome: d.outcome, observation:d.notes },
-        sha256: evidenceHash({actor,remediationId:id,retestId:last.id,outcome:d.outcome,observation:d.notes}),
+        payload: {
+          actor,
+          remediationId: id,
+          retestId: last.id,
+          outcome: d.outcome,
+          observation: d.notes,
+        },
+        sha256: evidenceHash({
+          actor,
+          remediationId: id,
+          retestId: last.id,
+          outcome: d.outcome,
+          observation: d.notes,
+        }),
         hashScheme: 'canonical-json-sha256-v1',
       },
     });

@@ -16,10 +16,20 @@ const server = createServer(async (req, res) => {
       res.end('Fixture route not found');
       return;
     }
-    const site = await db.labSite.findUnique({
-      where: { id: match[1] },
-      include: { revisions: { orderBy: { version: 'desc' }, take: 1 } },
-    });
+    let site = null;
+    for (let attempt = 0; attempt < 3; attempt++) {
+      try {
+        site = await db.labSite.findUnique({
+          where: { id: match[1] },
+          include: { revisions: { orderBy: { version: 'desc' }, take: 1 } },
+        });
+        break;
+      } catch (dbErr) {
+        if (attempt === 2) throw dbErr;
+        await Promise.race([db.$disconnect(), new Promise((r) => setTimeout(r, 1000))]);
+        await new Promise((r) => setTimeout(r, 200 * (attempt + 1)));
+      }
+    }
     if (!site) {
       res.writeHead(404);
       res.end('Unknown fixture');
@@ -44,7 +54,8 @@ const server = createServer(async (req, res) => {
       'X-Content-Type-Options': 'nosniff',
     });
     res.end(html);
-  } catch {
+  } catch (err) {
+    console.error('Controlled fixture error:', err);
     res.writeHead(500);
     res.end('Controlled fixture unavailable');
   }

@@ -51,9 +51,19 @@ export async function saveDecision(id: string, value: unknown) {
           pageId: task.pageId,
           kind: 'human-observation',
           summary: data.observation,
-          payload: { reviewer: data.reviewer, taskId: id, outcome: data.outcome, observation:data.observation },
-          sha256: evidenceHash({reviewer:data.reviewer,taskId:id,outcome:data.outcome,observation:data.observation}),
-          hashScheme:'canonical-json-sha256-v1',
+          payload: {
+            reviewer: data.reviewer,
+            taskId: id,
+            outcome: data.outcome,
+            observation: data.observation,
+          },
+          sha256: evidenceHash({
+            reviewer: data.reviewer,
+            taskId: id,
+            outcome: data.outcome,
+            observation: data.observation,
+          }),
+          hashScheme: 'canonical-json-sha256-v1',
         },
       });
       ids.push(eid);

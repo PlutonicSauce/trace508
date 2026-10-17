@@ -86,9 +86,30 @@ describe('AI provider contract fault injection (no inference requests)', () => {
     const transport = fake(200, {});
     await expect(providerExplanation({}, 'f', ['e'], transport)).rejects.toThrow('disabled');
     expect(transport).not.toHaveBeenCalled();
+    vi.stubEnv('AI_PROVIDER', 'groq');
+    vi.stubEnv('ALLOW_CLOUD_AI', 'false');
+    vi.stubEnv('GROQ_API_KEY', 'fixture-no-real-key');
+    await expect(providerExplanation({}, 'f', ['e'], transport)).rejects.toThrow('disabled');
+    expect(transport).not.toHaveBeenCalled();
     vi.stubEnv('AI_PROVIDER', 'ollama');
     vi.stubEnv('OLLAMA_ORIGIN', 'http://169.254.169.254');
     await expect(providerExplanation({}, 'f', ['e'], transport)).rejects.toThrow('origin');
+  });
+  it('supports GroqCloud free tier with strict schema and cloud consent enforcement', async () => {
+    vi.stubEnv('AI_PROVIDER', 'groq');
+    vi.stubEnv('ALLOW_CLOUD_AI', 'true');
+    vi.stubEnv('GROQ_API_KEY', 'gsk_fixture_test_key');
+    const transport = fake(200, {
+      choices: [{ message: { content: JSON.stringify(result) } }],
+    });
+    const res = await providerExplanation({}, 'f', ['e'], transport);
+    expect(res.parsed).toEqual(result);
+    expect(res.provider).toBe('groq');
+    expect(transport.mock.calls[0][0]).toBe('https://api.groq.com/openai/v1/chat/completions');
+    expect(transport.mock.calls[0][1]?.headers).toHaveProperty(
+      'Authorization',
+      'Bearer gsk_fixture_test_key',
+    );
   });
 });
 describe('URL parser adversarial cases', () => {

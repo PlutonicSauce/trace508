@@ -42,9 +42,14 @@ async function poll<T>(fn: () => Promise<T>, predicate: (x: T) => boolean, timeo
 async function stop(signal: NodeJS.Signals = 'SIGTERM') {
   if (worker && worker.exitCode === null) {
     const done = new Promise<void>((r) => worker!.once('exit', () => r()));
-    const force=setTimeout(()=>{try{process.kill(-worker!.pid!,'SIGKILL');}catch{}},5000);
+    const force = setTimeout(() => {
+      try {
+        process.kill(-worker!.pid!, 'SIGKILL');
+      } catch {}
+    }, 5000);
     process.kill(-worker.pid!, signal);
-    await done;clearTimeout(force);
+    await done;
+    clearTimeout(force);
   }
   worker = undefined;
 }
@@ -145,7 +150,7 @@ try {
   const controlURL = new URL(url);
   controlURL.pathname = '/postgres';
   const control = new PrismaClient({ datasources: { db: { url: controlURL.href } } });
-  const keeper=(await db.$queryRaw<{pid:number}[]>`SELECT pg_backend_pid() AS pid`)[0].pid;
+  const keeper = (await db.$queryRaw<{ pid: number }[]>`SELECT pg_backend_pid() AS pid`)[0].pid;
   try {
     await control.$executeRawUnsafe('ALTER DATABASE trace508_release_test ALLOW_CONNECTIONS false');
     await control.$queryRaw`SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname='trace508_release_test' AND pid<>${keeper}`;
@@ -154,11 +159,14 @@ try {
     await control.$executeRawUnsafe('ALTER DATABASE trace508_release_test ALLOW_CONNECTIONS true');
     await control.$disconnect();
   }
-  if(worker?.exitCode!==null)start();
+  if (worker?.exitCode !== null) start();
   const resumed = await create('after database disconnection', '', false);
   await poll(
     () => db.assessment.findUniqueOrThrow({ where: { id: resumed.id } }),
-    (x) => x.status === 'completed',
+    (x) => {
+      if (x.status === 'failed') throw new Error(`Resumed assessment failed: ${x.error}`);
+      return x.status === 'completed';
+    },
     60000,
   );
   measurements.databaseReconnection =
