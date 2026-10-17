@@ -177,38 +177,72 @@ async function main() {
   writeFileSync(screenshotPath, screenshotBuf);
   console.log(`  - Saved screenshot copy to: ${screenshotPath}`);
 
-  // ACTION 3: Complete a review action and verify that database and report reflect decision after refreshing
+  // ACTION 3: Verify Evidence-to-Requirement Integrity (Both Negative and Positive Workflows)
   console.log('\n--- ACTION 3: Complete review action and verify database & refreshed report ---');
 
-  // Find an open criterion review task for this assessment
-  const criterionTask = assessment.tasks.find(
-    (t: any) => t.kind === 'criterion' && t.status === 'open',
+  // Finding maps to a specific criterion (e.g. 1.4.3 for color-contrast)
+  const mappedReq = finding.mappings[0].requirementId;
+  const mappedCriterionTitle = finding.mappings[0].requirement.title;
+  console.log(
+    `[INTEGRITY] Finding ${finding.ruleId} (${finding.id}) maps to WCAG ${mappedReq} (${mappedCriterionTitle})`,
   );
-  const task = criterionTask || assessment.tasks.find((t: any) => t.status === 'open');
-  if (!task) throw new Error('No open review task found for assessment');
 
-  console.log(`[REVIEW TASK] Selected review task: ${task.id}`);
-  console.log(`  - Kind: ${task.kind}`);
-  console.log(`  - Criterion: WCAG ${task.requirementId} (${task.requirement.title})`);
-  console.log(`  - Status before review: ${task.status}`);
+  // --- STEP 3A: NEGATIVE INTEGRITY TEST ---
+  // Intentionally attempt to submit this evidence to an UNRELATED criterion: WCAG 1.1.1 Non-text Content
+  const task111 = assessment.tasks.find(
+    (t: any) => t.kind === 'criterion' && t.requirementId === '1.1.1',
+  );
+  if (!task111) throw new Error('Could not find WCAG 1.1.1 review task');
 
-  // Verify DB state before review
-  const dbTaskBefore = await db.reviewTask.findUniqueOrThrow({
-    where: { id: task.id },
-    include: { decisions: true },
+  console.log('\n[NEGATIVE INTEGRITY TEST] Intentionally submitting mismatched evidence...');
+  console.log(`  Target Task: WCAG 1.1.1 (${task111.requirement.title}) [ID: ${task111.id}]`);
+  console.log(
+    `  Mismatched Evidence: ${finding.ruleId} (maps to [${finding.mappings.map((m: any) => `WCAG ${m.requirementId}`).join(', ')}]) [ID: ${evidence.id}]`,
+  );
+
+  const negativeRes = await fetch(`${appOrigin}/api/reviews/${task111.id}`, {
+    method: 'POST',
+    headers,
+    body: JSON.stringify({
+      outcome: 'Supports',
+      observation:
+        'Observation discussing 4.28:1 text contrast ratio improperly submitted against image alternative text criterion.',
+      notes:
+        'Deliberate test attempt to submit mismatched evidence to test server-side validation.',
+      evidenceIds: [evidence.id],
+      isTestActivity: true,
+    }),
   });
-  console.log(`  - DB Task Status Before: ${dbTaskBefore.status}`);
-  console.log(`  - DB Decisions Count Before: ${dbTaskBefore.decisions.length}`);
 
-  // Submit human review decision with valid outcome according to task kind
-  const reviewOutcome = task.kind === 'criterion' ? 'Does Not Support' : 'confirmed';
-  const observationText =
-    'Inspected DOM and accessibility tree in Chromium on live assessment. Document text color contrast ratio fails 4.5:1 threshold (measured 4.28 on link element), failing ICT Baseline 13.c and WCAG 1.4.3 requirements.';
-  const rationaleText =
-    'Verified on live assessment of https://www.iana.org/domains/reserved. Measured link element text contrast against background color.';
+  console.log(`  - Server HTTP Status: ${negativeRes.status}`);
+  const negativeBody = await negativeRes.json();
+  console.log(`  - Server Error Response:`, negativeBody);
 
-  console.log(`\n[REVIEW ACTION] Submitting review decision (${reviewOutcome})...`);
-  const reviewRes = await fetch(`${appOrigin}/api/reviews/${task.id}`, {
+  if (negativeRes.status !== 400 || negativeBody.code !== 'EVIDENCE_CRITERION_MISMATCH') {
+    throw new Error(
+      `CRITICAL INTEGRITY FAILURE: Server accepted or failed to reject mismatched evidence! Status: ${negativeRes.status}, Body: ${JSON.stringify(negativeBody)}`,
+    );
+  }
+  console.log(
+    `✓ NEGATIVE TEST PASSED: Server rejected mismatched evidence with 400 EVIDENCE_CRITERION_MISMATCH: "${negativeBody.error}"\n`,
+  );
+
+  // --- STEP 3B: POSITIVE INTEGRITY TEST ---
+  // Submit evidence to the CORRECT matching criterion (WCAG 1.4.3 Contrast Minimum)
+  const taskMatching = assessment.tasks.find(
+    (t: any) => t.kind === 'criterion' && t.requirementId === mappedReq,
+  );
+  if (!taskMatching) throw new Error(`Could not find matching criterion task for ${mappedReq}`);
+
+  console.log(
+    `[POSITIVE INTEGRITY TEST] Submitting matching evidence for WCAG ${taskMatching.requirementId} (${taskMatching.requirement.title})...`,
+  );
+
+  const reviewOutcome = 'Does Not Support';
+  const observationText = `Inspected DOM and accessibility tree in Chromium on live assessment of ${targetUrl}. Measured text color contrast ratio of 4.28:1 on link element, failing 4.5:1 minimum threshold for regular text under WCAG ${taskMatching.requirementId}.`;
+  const rationaleText = `Verified on live assessment of ${targetUrl}. Measured link element text contrast against background color with Colour Contrast Analyser.`;
+
+  const positiveRes = await fetch(`${appOrigin}/api/reviews/${taskMatching.id}`, {
     method: 'POST',
     headers,
     body: JSON.stringify({
@@ -216,23 +250,28 @@ async function main() {
       observation: observationText,
       notes: rationaleText,
       evidenceIds: [evidence.id],
+      isTestActivity: true,
     }),
   });
 
-  if (!reviewRes.ok) {
-    throw new Error(`Failed to submit review: ${reviewRes.status} ${await reviewRes.text()}`);
+  if (!positiveRes.ok) {
+    throw new Error(
+      `Failed to submit valid review: ${positiveRes.status} ${await positiveRes.text()}`,
+    );
   }
-  const reviewResult = await reviewRes.json();
-  console.log(`  - Review submission response:`, reviewResult);
+  const positiveResult = await positiveRes.json();
+  console.log(
+    `✓ POSITIVE TEST PASSED: Decision saved with ID ${positiveResult.id} (Outcome: ${positiveResult.outcome})`,
+  );
 
   // 1. Verify in Database
   console.log('\n[DB VERIFICATION]:');
   const dbTaskAfter = await db.reviewTask.findUniqueOrThrow({
-    where: { id: task.id },
+    where: { id: taskMatching.id },
     include: { decisions: { orderBy: { createdAt: 'desc' } } },
   });
-  console.log(`  - DB Task Status After: ${dbTaskAfter.status}`);
-  console.log(`  - DB Decisions Count After: ${dbTaskAfter.decisions.length}`);
+  console.log(`  - DB Task Status: ${dbTaskAfter.status}`);
+  console.log(`  - DB Decisions Count: ${dbTaskAfter.decisions.length}`);
   const latestDecision = dbTaskAfter.decisions[0];
   const observationEvidence = await db.evidence.findFirst({
     where: {
@@ -244,19 +283,19 @@ async function main() {
   console.log(`  - DB Reviewer: ${latestDecision.reviewer}`);
   console.log(`  - DB Outcome: ${latestDecision.outcome}`);
   console.log(
-    `  - DB Observation (from linked evidence): "${observationEvidence?.summary.slice(0, 60)}..."`,
+    `  - DB Observation Evidence: ${observationEvidence?.id} ("${observationEvidence?.summary.slice(0, 60)}...")`,
   );
+  console.log(`  - DB Evidence Hash Scheme: ${observationEvidence?.hashScheme}`);
   console.log(`  - DB Notes: "${latestDecision.notes}"`);
 
-  // Check audit event
-  const projectEvent = await db.projectEvent.findFirst({
-    where: {
-      projectId: project.id,
-      action: 'review-task-decided',
-    },
-    orderBy: { createdAt: 'desc' },
+  // Verify WCAG 1.1.1 remained untouched and open
+  const dbTask111 = await db.reviewTask.findUniqueOrThrow({
+    where: { id: task111.id },
+    include: { decisions: true },
   });
-  console.log(`  - Audit Event Recorded: ${projectEvent?.action} by ${projectEvent?.actor}`);
+  console.log(
+    `  - DB WCAG 1.1.1 Task Status: ${dbTask111.status} (Open count: ${dbTask111.decisions.length})`,
+  );
 
   // 2. Refresh from API and verify refreshed payload
   console.log('\n[API REFRESH VERIFICATION]:');
@@ -264,18 +303,21 @@ async function main() {
   if (!refreshRes.ok) throw new Error('Failed to refresh assessment');
   const refreshed = await refreshRes.json();
 
-  const refreshedTask = refreshed.tasks.find((t: any) => t.id === task.id);
-  console.log(`  - Refreshed API Task Status: ${refreshedTask?.status}`);
-  console.log(`  - Refreshed API Decision Count: ${refreshedTask?.decisions?.length}`);
-  console.log(`  - Refreshed API Latest Outcome: ${refreshedTask?.decisions?.[0]?.outcome}`);
+  const refreshedMatchingTask = refreshed.tasks.find((t: any) => t.id === taskMatching.id);
+  console.log(`  - Refreshed API Task Status: ${refreshedMatchingTask?.status}`);
+  console.log(
+    `  - Refreshed API Latest Outcome: ${refreshedMatchingTask?.decisions?.[0]?.outcome}`,
+  );
 
   // Check compliance matrix in refreshed assessment
-  const matrixCriterion = refreshed.matrix?.find((m: any) => m.id === task.requirementId);
-  if (matrixCriterion) {
-    console.log(`  - Refreshed Matrix Criterion: WCAG ${matrixCriterion.id}`);
-    console.log(`    Human Review State: ${matrixCriterion.humanStatus}`);
-    console.log(`    Draft Conclusion: ${matrixCriterion.conclusion}`);
-  }
+  const matrixMatching = refreshed.matrix?.find((m: any) => m.id === mappedReq);
+  const matrix111 = refreshed.matrix?.find((m: any) => m.id === '1.1.1');
+  console.log(
+    `  - Refreshed Matrix WCAG ${mappedReq} Conclusion: ${matrixMatching?.conclusion} (Ready: ${matrixMatching?.ready})`,
+  );
+  console.log(
+    `  - Refreshed Matrix WCAG 1.1.1 Conclusion: ${matrix111?.conclusion ?? 'null (unresolved draft)'} (Review Open: ${matrix111?.reviewOpen})`,
+  );
 
   // 3. Verify Report Export reflects the decision
   console.log('\n[REPORT EXPORT VERIFICATION]:');
@@ -300,15 +342,26 @@ async function main() {
   if (openacrRes.ok) {
     const openacr = await openacrRes.json();
     console.log(`  - OpenACR Document Title: ${openacr.title}`);
-    console.log(`  - OpenACR Criteria Count: ${openacr.criteria?.length}`);
-    const reviewedItem = openacr.criteria?.find(
-      (c: any) => c.criterion === task.requirementId || c.id === task.requirementId,
-    );
+
+    // Check mapped requirement has adherence
+    const aaCriteria = openacr.chapters?.success_criteria_level_aa?.criteria || [];
+    const reviewedItem = aaCriteria.find((c: any) => c.num === mappedReq);
     if (reviewedItem) {
       console.log(
-        `  - OpenACR Criterion ${task.requirementId} Adherence: ${reviewedItem.adherence || reviewedItem.status}`,
+        `  - OpenACR WCAG ${mappedReq} Adherence: ${reviewedItem.components[0]?.adherence?.level}`,
       );
-      console.log(`  - OpenACR Criterion Notes: "${reviewedItem.notes?.slice(0, 80)}..."`);
+      console.log(
+        `  - OpenACR WCAG ${mappedReq} Notes: "${reviewedItem.components[0]?.adherence?.notes?.slice(0, 80)}..."`,
+      );
+    }
+
+    // Check WCAG 1.1.1 has NO adherence (remains unresolved draft)
+    const aCriteria = openacr.chapters?.success_criteria_level_a?.criteria || [];
+    const item111 = aCriteria.find((c: any) => c.num === '1.1.1');
+    const has111Adherence = item111?.components[0]?.adherence !== undefined;
+    console.log(`  - OpenACR WCAG 1.1.1 Has Adherence: ${has111Adherence} (Expected: false)`);
+    if (has111Adherence) {
+      throw new Error('OpenACR exported adherence for unresolved WCAG 1.1.1 criterion!');
     }
   }
 
@@ -355,6 +408,17 @@ async function main() {
   await page.screenshot({ path: uiFindingScreenshotPath, fullPage: true });
   console.log(`[BROWSER] Captured UI finding view screenshot: ${uiFindingScreenshotPath}`);
 
+  // Navigate to Report Integrity view
+  console.log(`[BROWSER] Navigating to ${appOrigin}/?view=integrity&assessment=${assessmentId}`);
+  await page.goto(`${appOrigin}/?view=integrity&assessment=${assessmentId}`, {
+    waitUntil: 'networkidle',
+  });
+  await page.waitForTimeout(1000);
+
+  const uiIntegrityScreenshotPath = path.join(outDir, 'ui-report-integrity.png');
+  await page.screenshot({ path: uiIntegrityScreenshotPath, fullPage: true });
+  console.log(`[BROWSER] Captured UI report integrity screenshot: ${uiIntegrityScreenshotPath}`);
+
   // Navigate to Human Review directly
   console.log(`[BROWSER] Navigating to ${appOrigin}/?view=review&assessment=${assessmentId}`);
   await page.goto(`${appOrigin}/?view=review&assessment=${assessmentId}`, {
@@ -378,7 +442,9 @@ async function main() {
 
   await browser.close();
 
-  console.log('\n=== ALL 3 ACTIONS VERIFIED END-TO-END WITH ZERO SIMULATION ===');
+  console.log(
+    '\n=== COMPLETE WORKFLOW VERIFIED: BOTH NEGATIVE AND POSITIVE INTEGRITY CONFIRMED ===',
+  );
 }
 
 main()

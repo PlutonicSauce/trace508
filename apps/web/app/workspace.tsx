@@ -23,6 +23,7 @@ import {
   Loader2,
   Plus,
   Search,
+  ShieldAlert,
   ShieldCheck,
   Sparkles,
   Target,
@@ -51,6 +52,7 @@ type View =
   | 'findings'
   | 'finding'
   | 'matrix'
+  | 'integrity'
   | 'review'
   | 'remediation'
   | 'compare'
@@ -66,6 +68,7 @@ const labels: Record<View, string> = {
   findings: 'Findings explorer',
   finding: 'Finding evidence',
   matrix: 'Compliance matrix',
+  integrity: 'Report integrity',
   review: 'Human review',
   remediation: 'Remediation backlog',
   compare: 'Before / After',
@@ -79,6 +82,7 @@ const nav: { view: View; icon: typeof Activity; label: string }[] = [
   { view: 'overview', icon: LayoutDashboard, label: 'Overview' },
   { view: 'findings', icon: Search, label: 'Findings explorer' },
   { view: 'matrix', icon: Layers3, label: 'Compliance matrix' },
+  { view: 'integrity', icon: ShieldAlert, label: 'Report integrity' },
   { view: 'review', icon: ClipboardCheck, label: 'Human review' },
   { view: 'remediation', icon: ListChecks, label: 'Remediation backlog' },
   { view: 'compare', icon: Columns2, label: 'Before / After' },
@@ -1087,9 +1091,33 @@ export default function Workspace() {
                                 </button>
                               </td>
                               <td>
-                                <Badge tone={r.ready ? 'green' : 'amber'}>
-                                  {r.conclusion ?? 'Unresolved draft'}
-                                </Badge>
+                                {r.integrityError ? (
+                                  <div>
+                                    <Badge tone="red">Integrity violation</Badge>
+                                    <small
+                                      className="table-sub"
+                                      style={{
+                                        color: '#f87171',
+                                        display: 'block',
+                                        marginTop: '4px',
+                                      }}
+                                    >
+                                      {r.integrityError}
+                                    </small>
+                                  </div>
+                                ) : (
+                                  <Badge tone={r.ready ? 'green' : 'amber'}>
+                                    {r.conclusion ?? 'Unresolved draft'}
+                                  </Badge>
+                                )}
+                                {r.invalidatedDecisions && r.invalidatedDecisions.length > 0 && (
+                                  <small
+                                    className="table-sub"
+                                    style={{ color: '#fbbf24', display: 'block', marginTop: '4px' }}
+                                  >
+                                    {r.invalidatedDecisions.length} prior decision(s) invalidated
+                                  </small>
+                                )}
                               </td>
                             </tr>
                           ))}
@@ -1103,6 +1131,7 @@ export default function Workspace() {
                   </div>
                 </section>
               )}
+              {view === 'integrity' && a && <IntegrityWorkspace a={a} navigate={navigate} />}
               {view === 'review' && a && (
                 <ReviewWorkspace
                   a={a}
@@ -1975,13 +2004,33 @@ function ReviewForm({
     [observation, setObservation] = useState(''),
     [outcome, setOutcome] = useState(''),
     [busy, setBusy] = useState(false),
-    [ids, setIds] = useState<string[]>([]);
+    [ids, setIds] = useState<string[]>([]),
+    [formError, setFormError] = useState<string | null>(null);
+
+  // Strictly filter evidence: for criterion tasks, only evidence mapped to this criterion
+  const relevantFindings =
+    t.kind === 'criterion'
+      ? a.findings.filter(
+          (f) =>
+            f.pageId === t.pageId && f.mappings.some((m) => m.requirementId === t.requirementId),
+        )
+      : a.findings.filter((f) => f.id === t.findingId);
+
+  const pageEvidence =
+    t.kind === 'criterion'
+      ? a.pages.filter((p) => p.id === t.pageId).flatMap((p) => p.evidence)
+      : [];
+
   const evidence = [
-    ...a.pages.filter((p) => p.id === t.pageId).flatMap((p) => p.evidence),
-    ...a.findings
-      .filter((f) => f.pageId === t.pageId && (!t.findingId || f.id === t.findingId))
-      .flatMap((f) => f.evidence),
+    ...pageEvidence,
+    ...relevantFindings.flatMap((f) =>
+      f.evidence.map((e) => ({
+        ...e,
+        ruleId: f.ruleId,
+      })),
+    ),
   ];
+
   return (
     <section className="panel review-form">
       <div className="section-heading">
@@ -1994,6 +2043,11 @@ function ReviewForm({
         <ClipboardCheck size={21} />
         <p>{t.reason}</p>
       </div>
+      {t.requirement.reviewGuide && (
+        <div className="panel-note" style={{ marginBottom: '16px' }}>
+          <strong>Section 508 Evaluation Guidance:</strong> {t.requirement.reviewGuide}
+        </div>
+      )}
       <a
         className="text-button"
         href="https://ictbaseline.access-board.gov/web-baselines/"
@@ -2003,10 +2057,22 @@ function ReviewForm({
         Official ICT Baseline test guidance
         <ArrowUpRight size={14} />
       </a>
+
+      {formError && (
+        <div className="alert danger" style={{ marginTop: '12px', marginBottom: '12px' }}>
+          <TriangleAlert size={20} />
+          <div>
+            <strong>Compliance Integrity Rejection</strong>
+            <p>{formError}</p>
+          </div>
+        </div>
+      )}
+
       <form
         onSubmit={async (e) => {
           e.preventDefault();
           setBusy(true);
+          setFormError(null);
           try {
             await onSave({
               reviewer,
@@ -2017,7 +2083,9 @@ function ReviewForm({
             });
             setNotes('');
             setObservation('');
-          } catch {
+            setIds([]);
+          } catch (err) {
+            setFormError((err as Error).message);
           } finally {
             setBusy(false);
           }
@@ -2077,34 +2145,43 @@ function ReviewForm({
           rows={3}
           value={notes}
           onChange={(e) => setNotes(e.target.value)}
-          placeholder="Explain why the evidence supports this decision and identify any scope limits."
+          placeholder="Explain why the evidence supports this decision and identify any scope limits (min 30 chars)."
         />
         <fieldset className="evidence-selection">
-          <legend>Link supporting scanner evidence</legend>
-          <div>
-            {evidence.map((e) => (
-              <label key={e.id}>
-                <input
-                  type="checkbox"
-                  checked={ids.includes(e.id)}
-                  onChange={(v) =>
-                    setIds(v.target.checked ? [...ids, e.id] : ids.filter((id) => id !== e.id))
-                  }
-                />
-                <span>
-                  <code>{e.id}</code>
-                  <small>
-                    {e.kind} · {e.summary.slice(0, 100)}
-                  </small>
-                </span>
-              </label>
-            ))}
-          </div>
+          <legend>Link supporting evidence</legend>
+          {evidence.length ? (
+            <div>
+              {evidence.map((e) => (
+                <label key={e.id}>
+                  <input
+                    type="checkbox"
+                    checked={ids.includes(e.id)}
+                    onChange={(v) =>
+                      setIds(v.target.checked ? [...ids, e.id] : ids.filter((id) => id !== e.id))
+                    }
+                  />
+                  <span>
+                    <code>{e.id}</code>
+                    <small>
+                      {e.kind}
+                      {'ruleId' in e ? ` · rule: ${e.ruleId}` : ''} · {e.summary.slice(0, 100)}
+                    </small>
+                  </span>
+                </label>
+              ))}
+            </div>
+          ) : (
+            <p className="muted" style={{ padding: '8px 0', fontSize: '0.85rem' }}>
+              No automated scanner findings map to WCAG {t.requirementId} ({t.requirement.title}).
+              Manual observation with documented test steps and assistive technology/dev tools is
+              required.
+            </p>
+          )}
         </fieldset>
         <p className="field-help">
-          Decisions use your signed-in account identity. Saved observations are permanent evidence.
-          A Supports decision with unresolved scanner violations is flagged as a conflict in the
-          matrix.
+          Decisions use your signed-in account identity. Automated findings for unrelated criteria
+          cannot be attached to this criterion. Saved observations become permanent cryptographic
+          evidence.
         </p>
         <button className="button primary" disabled={busy || a.status !== 'completed'}>
           {busy ? <Loader2 className="spin" size={16} /> : <Check size={16} />}Save reviewer
@@ -2115,12 +2192,33 @@ function ReviewForm({
         <h3>Decision history</h3>
         {t.decisions.length ? (
           t.decisions.map((d) => (
-            <div key={d.id}>
-              <Badge>{d.outcome}</Badge>
-              <strong>{d.reviewer}</strong>
-              <small>{date(d.createdAt)}</small>
-              <p>{d.notes}</p>
-              <small>Evidence: {(d.evidenceIds as string[]).join(', ')}</small>
+            <div
+              key={d.id}
+              style={{
+                borderLeft: d.invalidatedAt ? '3px solid #f87171' : undefined,
+                paddingLeft: d.invalidatedAt ? '12px' : undefined,
+                opacity: d.invalidatedAt ? 0.85 : 1,
+              }}
+            >
+              <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                <Badge tone={d.invalidatedAt ? 'red' : 'neutral'}>{d.outcome}</Badge>
+                {d.invalidatedAt && <Badge tone="red">Invalidated</Badge>}
+                <strong>{d.reviewer}</strong>
+                <small>{date(d.createdAt)}</small>
+              </div>
+              {d.invalidatedAt && (
+                <div
+                  className="alert danger"
+                  style={{ marginTop: '8px', padding: '6px 10px', fontSize: '0.85rem' }}
+                >
+                  <TriangleAlert size={14} />
+                  <span>
+                    <strong>Invalidated on {date(d.invalidatedAt)}:</strong> {d.invalidationReason}
+                  </span>
+                </div>
+              )}
+              <p style={{ marginTop: '6px' }}>{d.notes}</p>
+              <small>Evidence: {((d.evidenceIds as string[]) || []).join(', ') || 'none'}</small>
             </div>
           ))
         ) : (
@@ -2128,6 +2226,296 @@ function ReviewForm({
         )}
       </div>
     </section>
+  );
+}
+
+function IntegrityWorkspace({
+  a,
+  navigate,
+}: {
+  a: Detail;
+  navigate: (view: View, id?: string, fid?: string) => void;
+}) {
+  const [query, setQuery] = useState('');
+  const validatedCount = a.matrix.filter(
+    (r) => r.ready && r.conclusion && !r.integrityError,
+  ).length;
+  const blockedCount = a.matrix.filter((r) => r.integrityError).length;
+  const pendingCount = a.matrix.filter((r) => r.reviewOpen > 0).length;
+  const allInvalidated = a.matrix.flatMap((r) => r.invalidatedDecisions ?? []);
+
+  return (
+    <div className="flow">
+      <section className="panel">
+        <div className="panel-header">
+          <div>
+            <h2>Report Integrity & Conformance Verification</h2>
+            <p>
+              Strict server-side validation guarantees every ACR conformance assertion is justified
+              by relevant, un-invalidated evidence. Mismatched or unsubstantiated claims are
+              strictly blocked.
+            </p>
+          </div>
+          <Badge tone={blockedCount > 0 ? 'red' : validatedCount > 0 ? 'green' : 'amber'}>
+            {blockedCount > 0 ? `${blockedCount} blocked conclusions` : 'Integrity verified'}
+          </Badge>
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px' }}>
+          <div className="panel" style={{ padding: '20px' }}>
+            <span
+              className="mono muted"
+              style={{ fontSize: '0.75rem', textTransform: 'uppercase' }}
+            >
+              Validated Conformance
+            </span>
+            <strong
+              style={{ fontSize: '32px', display: 'block', margin: '12px 0 4px', color: '#6da88c' }}
+            >
+              {validatedCount}
+            </strong>
+            <p className="muted" style={{ margin: 0, fontSize: '0.85rem' }}>
+              of 38 WCAG criteria
+            </p>
+          </div>
+          <div
+            className="panel"
+            style={{
+              padding: '20px',
+              borderTop: blockedCount > 0 ? '3px solid #f87171' : undefined,
+            }}
+          >
+            <span
+              className="mono muted"
+              style={{ fontSize: '0.75rem', textTransform: 'uppercase' }}
+            >
+              Blocked Assertions
+            </span>
+            <strong
+              style={{
+                fontSize: '32px',
+                display: 'block',
+                margin: '12px 0 4px',
+                color: blockedCount > 0 ? '#f87171' : undefined,
+              }}
+            >
+              {blockedCount}
+            </strong>
+            <p className="muted" style={{ margin: 0, fontSize: '0.85rem' }}>
+              Mismatched or invalid evidence
+            </p>
+          </div>
+          <div className="panel" style={{ padding: '20px' }}>
+            <span
+              className="mono muted"
+              style={{ fontSize: '0.75rem', textTransform: 'uppercase' }}
+            >
+              Pending Review
+            </span>
+            <strong style={{ fontSize: '32px', display: 'block', margin: '12px 0 4px' }}>
+              {pendingCount}
+            </strong>
+            <p className="muted" style={{ margin: 0, fontSize: '0.85rem' }}>
+              Criteria needing review
+            </p>
+          </div>
+          <div className="panel" style={{ padding: '20px' }}>
+            <span
+              className="mono muted"
+              style={{ fontSize: '0.75rem', textTransform: 'uppercase' }}
+            >
+              Preserved Invalidations
+            </span>
+            <strong style={{ fontSize: '32px', display: 'block', margin: '12px 0 4px' }}>
+              {allInvalidated.length}
+            </strong>
+            <p className="muted" style={{ margin: 0, fontSize: '0.85rem' }}>
+              Decisions marked invalid
+            </p>
+          </div>
+        </div>
+      </section>
+
+      {blockedCount > 0 && (
+        <section className="panel" style={{ borderColor: '#f87171' }}>
+          <div className="panel-header">
+            <div>
+              <h3 style={{ color: '#f87171' }}>Blocked Conformance Assertions</h3>
+              <p>
+                The following criteria have invalid or mismatched supporting evidence. Conformance
+                claims are strictly withheld from OpenACR and VPAT export until corrected.
+              </p>
+            </div>
+            <Badge tone="red">ACR export withheld</Badge>
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            {a.matrix
+              .filter((r) => r.integrityError)
+              .map((r) => (
+                <div
+                  key={r.id}
+                  className="alert danger"
+                  style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                  }}
+                >
+                  <div>
+                    <strong>
+                      WCAG {r.id} {r.title}
+                    </strong>
+                    <p style={{ marginTop: '4px' }}>{r.integrityError}</p>
+                  </div>
+                  <button className="button secondary" onClick={() => navigate('review')}>
+                    Review criterion
+                  </button>
+                </div>
+              ))}
+          </div>
+        </section>
+      )}
+
+      {allInvalidated.length > 0 && (
+        <section className="panel">
+          <div className="panel-header">
+            <div>
+              <h3>Preserved Invalidation Audit Log</h3>
+              <p>
+                Trace508 preserves all historical reviewer decisions for auditability. Invalidated
+                decisions are clearly flagged and never silently rewritten or included in
+                conformance claims.
+              </p>
+            </div>
+            <Badge tone="amber">Audit history preserved</Badge>
+          </div>
+          <div className="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th scope="col">Decision ID</th>
+                  <th scope="col">Auditor / Reviewer</th>
+                  <th scope="col">Invalidation date</th>
+                  <th scope="col">Reason for invalidation</th>
+                  <th scope="col">Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                {allInvalidated.map((inv) => (
+                  <tr key={inv.id}>
+                    <td>
+                      <code>{inv.id.slice(0, 8)}</code>
+                    </td>
+                    <td>{inv.reviewer}</td>
+                    <td>{inv.invalidatedAt ? date(inv.invalidatedAt) : 'Recorded'}</td>
+                    <td>
+                      <span style={{ color: '#f87171' }}>{inv.invalidationReason}</span>
+                    </td>
+                    <td>
+                      <button className="text-button" onClick={() => navigate('review')}>
+                        Re-evaluate in review
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </section>
+      )}
+
+      <section className="panel">
+        <div className="panel-header">
+          <div>
+            <h3>Evidence-to-Requirement Integrity Matrix</h3>
+            <p>
+              Verification status for all 38 WCAG 2.0 Level A and AA criteria under Section 508.
+            </p>
+          </div>
+        </div>
+        <div className="filters">
+          <div className="search-field">
+            <Search size={17} />
+            <input
+              aria-label="Filter criteria"
+              placeholder="Search criterion or status…"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+            />
+          </div>
+        </div>
+        <div className="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th scope="col">Criterion</th>
+                <th scope="col">Level</th>
+                <th scope="col">Evidence integrity status</th>
+                <th scope="col">Draft ACR claim</th>
+                <th scope="col">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {a.matrix
+                .filter((r) =>
+                  `${r.id} ${r.title} ${r.level}`.toLowerCase().includes(query.toLowerCase()),
+                )
+                .map((r) => (
+                  <tr key={r.id}>
+                    <td>
+                      <strong>
+                        {r.id} {r.title}
+                      </strong>
+                      <small className="table-sub">{r.section508}</small>
+                    </td>
+                    <td>{r.level}</td>
+                    <td>
+                      {r.integrityError ? (
+                        <div>
+                          <Badge tone="red">Evidence mismatch</Badge>
+                          <small
+                            className="table-sub"
+                            style={{ color: '#f87171', display: 'block', marginTop: '4px' }}
+                          >
+                            {r.integrityError}
+                          </small>
+                        </div>
+                      ) : r.ready && r.conclusion ? (
+                        <div>
+                          <Badge tone="green">Verified supporting evidence</Badge>
+                          <small className="table-sub">
+                            {r.evidenceIds.length} verified evidence items
+                          </small>
+                        </div>
+                      ) : (
+                        <div>
+                          <Badge tone="amber">Pending human review</Badge>
+                          <small className="table-sub">
+                            {r.findings.length
+                              ? `${r.findings.length} automated findings require review`
+                              : 'Human observation required'}
+                          </small>
+                        </div>
+                      )}
+                    </td>
+                    <td>
+                      <Badge
+                        tone={r.ready && r.conclusion && !r.integrityError ? 'green' : 'neutral'}
+                      >
+                        {r.integrityError ? 'Withheld' : (r.conclusion ?? 'Unresolved draft')}
+                      </Badge>
+                    </td>
+                    <td>
+                      <button className="text-button" onClick={() => navigate('review')}>
+                        Review
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </div>
   );
 }
 function RemediationCard({
