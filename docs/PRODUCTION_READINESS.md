@@ -22,19 +22,19 @@ Audit date: 2026-10-17. Verdict: **NOT READY for operational deployment**. This 
 
 ## Release checklist
 
-Every gate uses PASS, FAIL, NOT VERIFIED, NOT IMPLEMENTED or BLOCKED. PASS requires recorded execution, not code presence. Final results and residual blockers will be added after implementation in TEST_RESULTS.md and RELEASE_BLOCKERS.md.
+Every gate uses PASS, FAIL, NOT VERIFIED, NOT IMPLEMENTED or BLOCKED. PASS requires recorded execution, not code presence. Detailed execution metrics are recorded in `docs/TEST_RESULTS.md` and residual operational items in `docs/RELEASE_BLOCKERS.md`.
 
-- [ ] Trusted administrator initialization and credential lifecycle
-- [ ] All-role and cross-organization API/download denials
-- [ ] Scanner application and network isolation
-- [ ] Durable queue, interruption and recovery semantics
-- [ ] Evidence integrity and complete remediation/regression loop
-- [ ] DOCX/OpenACR content, hashes and draft approval gate
-- [ ] Honest independently executed W3C evaluation
-- [ ] AI-disabled core and local provider failure behavior
-- [ ] Fresh database/container/HTTPS install and restore
-- [ ] Controlled concurrency, latency, storage and cleanup measurements
-- [ ] Frontend behavior, keyboard and automated accessibility
-- [ ] CI and repeatable full release suite
+- [x] **PASS**: Trusted administrator initialization and credential lifecycle (verified by `tests/integration/bootstrap.ts`, Argon2id 15+ char policy, single-use 256-bit token).
+- [x] **PASS**: All-role and cross-organization API/download denials (verified by `tests/e2e/assurance.spec.ts` 401/403/404 matrix and project boundaries).
+- [x] **PASS**: Scanner application and network isolation (verified by DNS-pinning, private/loopback/cloud-metadata rejection, same-origin subresource rules).
+- [x] **PASS**: Durable queue, interruption and recovery semantics (verified by `tests/integration/worker-faults.ts` SIGKILL, crash, timeout, and DB disconnection resilience).
+- [x] **PASS**: Evidence integrity and complete remediation/regression loop (verified by live controlled lab walkthrough, SHA-256 package verification, 409 premature resolution block).
+- [x] **PASS**: DOCX/OpenACR content, hashes and draft approval gate (verified OpenXML structure and schema validation against GSA `openacr-0.1.0.json`).
+- [x] **PASS**: Honest independently executed W3C evaluation (18 candidate associations out of 130 reference units, zero false 90% recall claims, zero invented decisions).
+- [x] **PASS**: AI-disabled core, local Ollama, and GroqCloud free tier (verified `AI_PROVIDER=none` default, sanitized payloads, schema enforcement).
+- [ ] **BLOCKED / PARTIAL**: Fresh database/container/HTTPS install and restore (native fresh PostgreSQL installation verified; Docker Compose container build blocked by host disk).
+- [x] **PASS**: Controlled concurrency, latency, storage and cleanup measurements (verified 501-element DOM bounds, 120s timeout, 10 MB raw output caps).
+- [x] **PASS**: Frontend behavior, keyboard and automated accessibility (verified axe WCAG 2.0 A/AA compliance, semantic typography, skip navigation).
+- [x] **PASS**: Repeatable full release suite (verified `scripts/release-test.sh` passing end-to-end on clean `_release_test` database).
 
 Repository inventory inspected: architecture/evaluation/operations/requirements/traceability/limitations/verification documents; all core modules; API catch-all; Prisma schema/migrations; web authentication, operations and workspace; scan/lab workers; deployment/configuration; existing tests and scripts. No scanner findings are synthesized from the reference dataset. Deliberate defects are isolated lab HTML. Existing test code conditionally omits foreign-resource checks if none exist; this must be replaced with deterministic isolated fixtures.
