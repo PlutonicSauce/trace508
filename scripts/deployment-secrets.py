@@ -4,5 +4,5 @@ p=pathlib.Path(os.environ.get('SECRETS_DIR','.local/secrets'));p.mkdir(parents=T
 password=secrets.token_hex(32)
 for name,value in [('db_password',password),('database_url',f'postgresql://trace508:{password}@db:5432/trace508')]:
  with open(p/name,'x') as f:
-  os.chmod(p/name,0o644);f.write(value+'\n')
+  os.chmod(p/name,0o600);f.write(value+'\n')
 print('Created protected database secrets. No credentials printed. Preserve them in your approved secret store.')

@@ -5,6 +5,8 @@ import { AppError } from './errors';
 
 export const decisionSchema = z.object({
   reviewer: z.string().trim().min(2).max(500),
+  reviewerQualification: z.string().trim().max(500).optional(),
+  methodology: z.string().trim().max(500).optional(),
   outcome: z.enum([
     'Supports',
     'Partially Supports',
@@ -199,6 +201,9 @@ export async function saveDecision(
           summary: data.observation,
           payload: {
             reviewer: data.reviewer,
+            reviewerQualification:
+              data.reviewerQualification ?? 'Self-Attested Auditor (Unverified)',
+            methodology: data.methodology ?? 'Revised Section 508 / ICT Testing Baseline',
             taskId: id,
             requirementId: task.requirementId,
             criterionTitle: task.requirement.title,
@@ -209,6 +214,9 @@ export async function saveDecision(
           },
           sha256: evidenceHash({
             reviewer: data.reviewer,
+            reviewerQualification:
+              data.reviewerQualification ?? 'Self-Attested Auditor (Unverified)',
+            methodology: data.methodology ?? 'Revised Section 508 / ICT Testing Baseline',
             taskId: id,
             requirementId: task.requirementId,
             outcome: data.outcome,
@@ -232,6 +240,8 @@ export async function saveDecision(
       data: {
         taskId: id,
         reviewer: data.reviewer,
+        reviewerQualification: data.reviewerQualification ?? 'Self-Attested Auditor (Unverified)',
+        methodology: data.methodology ?? 'Revised Section 508 / ICT Testing Baseline',
         outcome: data.outcome,
         notes: data.notes,
         evidenceIds: ids,
@@ -250,7 +260,7 @@ export async function saveDecision(
         assessmentId: task.assessmentId,
         actor: data.reviewer,
         action: 'review-decision',
-        detail: `${task.kind} task ${id} (WCAG ${task.requirementId}): ${data.outcome}; ${data.notes}${data.isTestActivity ? ' [TEST ACTIVITY]' : ''}`,
+        detail: `${task.kind} task ${id} (WCAG ${task.requirementId}): ${data.outcome} [Qualification: ${data.reviewerQualification ?? 'Self-Attested Auditor (Unverified)'}; Method: ${data.methodology ?? 'Revised Section 508 / ICT Testing Baseline'}]; ${data.notes}${data.isTestActivity ? ' [TEST ACTIVITY]' : ''}`,
       },
     });
 
