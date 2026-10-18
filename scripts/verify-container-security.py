@@ -176,18 +176,21 @@ def main():
         '    if (text.includes(\'postgresql:\')) throw Error(\'Violation: read secret file from in-page browser context\');'
         '    console.log(\'PASS: in-browser file secret access blocked/empty\');'
         '  } catch (e) {'
+        '    if (e.message.includes(\'Violation\')) throw e;'
         '    console.log(\'PASS: in-browser file secret access blocked:\', e.message);'
         '  }'
         '  try {'
         '    await p.goto(\'http://db:5432/\', { timeout: 2000 });'
         '    throw Error(\'Violation: navigated to db service\');'
         '  } catch (e) {'
+        '    if (e.message.includes(\'Violation\')) throw e;'
         '    console.log(\'PASS: in-browser db navigation failed as expected:\', e.message);'
         '  }'
         '  try {'
         '    await p.goto(\'http://web:3000/\', { timeout: 2000 });'
         '    throw Error(\'Violation: navigated to web service\');'
         '  } catch (e) {'
+        '    if (e.message.includes(\'Violation\')) throw e;'
         '    console.log(\'PASS: in-browser web navigation failed as expected:\', e.message);'
         '  }'
         '  try {'
@@ -200,6 +203,7 @@ def main():
         '      throw Error(\'Violation: unexpected status for cloud metadata: \' + resp.status());'
         '    }'
         '  } catch (e) {'
+        '    if (e.message.includes(\'Violation\')) throw e;'
         '    console.log(\'PASS: in-browser cloud metadata navigation blocked:\', e.message);'
         '  }'
         '  await b.close();'
@@ -246,7 +250,31 @@ def main():
 
     # 8. Egress Proxy Filtering: Cloud Metadata and Private Ranges
     print("\n8. Auditing egress proxy filtering (cloud metadata & private subnets)...")
-    # Cloud metadata 169.254.169.254
+    # First, verify the egress proxy is actually running and reachable by
+    # issuing a CONNECT to a known-allowed public destination (example.com).
+    # This prevents false passes when the proxy is simply down.
+    res = run(
+        'docker compose exec -T browser node -e "'
+        'import(\'http\').then(({request}) => {'
+        '  const r = request({ host: \'egress\', port: 3128, method: \'CONNECT\', path: \'example.com:443\' });'
+        '  r.on(\'connect\', (res) => {'
+        '    if (res.statusCode === 200) { console.log(\'PASS: egress proxy reachable and accepting allowed CONNECT\'); process.exit(0); }'
+        '    else { console.error(\'FAIL: egress proxy returned unexpected status\', res.statusCode, \'for allowed destination\'); process.exit(1); }'
+        '  });'
+        '  r.on(\'response\', (res) => {'
+        '    if (res.statusCode === 200) { console.log(\'PASS: egress proxy reachable and accepting allowed CONNECT\'); process.exit(0); }'
+        '    else { console.error(\'FAIL: egress proxy returned unexpected status\', res.statusCode, \'for allowed destination\'); process.exit(1); }'
+        '  });'
+        '  r.on(\'error\', (e) => { console.error(\'FAIL: egress proxy unreachable:\', e.message); process.exit(1); });'
+        '  r.end();'
+        '});"'
+    )
+    assert "PASS: egress proxy reachable" in res.stdout, \
+        "Egress proxy is not running or unreachable; subsequent block tests would be meaningless"
+    print("  [PASS] Egress proxy confirmed reachable and accepting allowed CONNECT requests")
+    checks += 1
+
+    # Cloud metadata 169.254.169.254 — must get HTTP 403 specifically, not a connection error
     res = run(
         'docker compose exec -T browser node -e "'
         'import(\'http\').then(({request}) => {'
@@ -257,15 +285,16 @@ def main():
         '  };'
         '  r.on(\'connect\', (res) => handle(res.statusCode));'
         '  r.on(\'response\', (res) => handle(res.statusCode));'
-        '  r.on(\'error\', (e) => { console.log(\'PASS: cloud metadata rejected\', e.message); process.exit(0); });'
+        '  r.on(\'error\', (e) => { console.error(\'FAIL: connection error instead of HTTP 403:\', e.message); process.exit(1); });'
         '  r.end();'
         '});"'
     )
-    assert "PASS: cloud metadata" in res.stdout, "Security violation: cloud metadata endpoint not blocked!"
+    assert "PASS: cloud metadata blocked HTTP 403" in res.stdout, \
+        "Security violation: cloud metadata endpoint not blocked with HTTP 403!"
     print("  [PASS] Egress proxy blocked cloud metadata (169.254.169.254) with HTTP 403 Forbidden")
     checks += 1
 
-    # Private subnet 10.0.0.1
+    # Private subnet 10.0.0.1 — must get HTTP 403 specifically, not a connection error
     res = run(
         'docker compose exec -T browser node -e "'
         'import(\'http\').then(({request}) => {'
@@ -276,11 +305,12 @@ def main():
         '  };'
         '  r.on(\'connect\', (res) => handle(res.statusCode));'
         '  r.on(\'response\', (res) => handle(res.statusCode));'
-        '  r.on(\'error\', (e) => { console.log(\'PASS: private subnet rejected\', e.message); process.exit(0); });'
+        '  r.on(\'error\', (e) => { console.error(\'FAIL: connection error instead of HTTP 403:\', e.message); process.exit(1); });'
         '  r.end();'
         '});"'
     )
-    assert "PASS: private subnet" in res.stdout, "Security violation: private subnet not blocked!"
+    assert "PASS: private subnet blocked HTTP 403" in res.stdout, \
+        "Security violation: private subnet not blocked with HTTP 403!"
     print("  [PASS] Egress proxy blocked private subnet (10.0.0.1) with HTTP 403 Forbidden")
     checks += 1
 
