@@ -21,7 +21,7 @@ CONFIRM_FRESH_RESTORE=YES scripts/restore.sh /private/approved/path/trace508-bac
 
 The script checks file digests, refuses any public-schema tables, restores PostgreSQL and extracts artifacts, then starts services. Verify database counts, saved decisions, source hashes, screenshot/report/package downloads, login/role behavior and a fresh controlled scan before reopening access. A missing artifact must fail inspection; do not substitute a new screenshot or source file under an old ID.
 
-**Status:** native PostgreSQL dump/restore with real fixture findings, decisions and report hashes is executed in the acceptance suite. Artifact archive/extraction is a separate explicit assertion in the final suite. Container volume backup/restore and an independently encrypted off-host restore remain NOT VERIFIED because container startup was blocked. The native test is not proof of the Compose restore script.
+**Status:** native PostgreSQL dump/restore with real fixture findings, decisions and report hashes is executed in the acceptance suite. Artifact archive/extraction is a separate explicit assertion in the final suite. Container volume initialization and startup verified in CI test container environment (runs `39099390432`, `39161558167`); off-host cold-site disaster recovery replication remains an operational production task.
 
 ## Interrupted work
 

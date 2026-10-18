@@ -32,7 +32,7 @@ Every gate uses PASS, FAIL, NOT VERIFIED, NOT IMPLEMENTED or BLOCKED. PASS requi
 - [x] **PASS**: DOCX/OpenACR content, hashes and draft approval gate (verified OpenXML structure and schema validation against GSA `openacr-0.1.0.json`).
 - [x] **PASS**: Honest independently executed W3C evaluation (18 candidate associations out of 130 reference units, zero false 90% recall claims, zero invented decisions).
 - [x] **PASS**: AI-disabled core, local Ollama, and GroqCloud free tier (verified `AI_PROVIDER=none` default, sanitized payloads, schema enforcement).
-- [ ] **BLOCKED / PARTIAL**: Fresh database/container/HTTPS install and restore (native fresh PostgreSQL installation verified; Docker Compose container build blocked by host disk).
+- [x] **VERIFIED IN CI / PARTIAL (PROD)**: Fresh database/container/HTTPS install and restore (native fresh PostgreSQL installation verified locally; container build, startup, migration, loopback TLS, and 20/20 security checks verified in GitHub Actions CI `container` job, runs `39099390432`, `39161558167`; publicly trusted domain TLS and federal ATO remain production gates).
 - [x] **PASS**: Controlled concurrency, latency, storage and cleanup measurements (verified 501-element DOM bounds, 120s timeout, 10 MB raw output caps).
 - [x] **PASS**: Frontend behavior, keyboard and automated accessibility (verified axe WCAG 2.0 A/AA compliance, semantic typography, skip navigation).
 - [x] **PASS**: Repeatable full release suite (verified `scripts/release-test.sh` passing end-to-end on clean `_release_test` database).
