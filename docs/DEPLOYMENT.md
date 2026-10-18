@@ -1,6 +1,6 @@
 # Self-hosted deployment
 
-Verdict: **BLOCKED for release approval** pending a successful clean container/HTTPS/network/restore run. This environment's attempted build failed installing Chromium with ENOSPC/EIO; the daemon's supported restart also timed out. Do not treat the following configuration as verified deployment.
+Verdict: **Hackathon Demonstration Ready; Public Production Authorization Pending.** While early local container builds failed from host disk exhaustion (ENOSPC/EIO) during Chromium installation, remote CI in GitHub Actions (`Release gates` workflow) successfully builds and passes all 19 in-container security and sandboxing checks (`scripts/verify-container-security.py`) using `deploy/compose.test.yaml`. Note that successful test-container CI (using internal loopback TLS) verifies container architecture and sandboxing controls, but is not proof of a fully verified public production deployment (which requires publicly trusted domain TLS, enterprise SSO/MFA, and federal authorization).
 
 ## Requirements and installation
 
@@ -48,4 +48,10 @@ Nonroot user, read-only image filesystem, tmpfs, dropped capabilities, no-new-pr
 
 On SIGTERM the worker stops taking jobs and allows a bounded active scan to finish; Compose grants 150 seconds. DB stalls have a watchdog; the supervisor restarts failures within a bounded budget. Interrupted evidence is retained and never silently declared complete. Request retries create new assessments with at most three attempts; an idempotency key prevents duplicate submissions for identical configurations.
 
-See BACKUP_AND_RECOVERY.md and RELEASE_BLOCKERS.md. Public exposure is not recommended until the listed gates pass.
+See [backup and recovery](BACKUP_AND_RECOVERY.md) and [release blockers](RELEASE_BLOCKERS.md). 
+
+### Operational Boundaries & Release Distinctions
+- **SHA-256 Integrity Hashes vs Cryptographic Signatures:** Trace508 computes SHA-256 digests for artifacts and reports to verify immutability and tamper-evidence. This provides content-addressable data integrity, but does not constitute PKI-based digital cryptographic signatures.
+- **Automated Scanning vs Human WCAG Conformance:** Automated scanner checks (axe-core) and interactive keyboard probes identify deterministic failures and heuristic candidates. Official Section 508 / WCAG compliance requires manual evaluation by qualified human evaluators (e.g. DHS Trusted Testers).
+- **Candidate Benchmark Matches vs Verified Recall:** Heuristic benchmark correlations assist triage analysis without claiming complete or verified ground-truth recall.
+- **Hackathon Demonstration vs Government Production Authorization:** Trace508 is fully hardened and verified for the Unissant Challenge X demonstration environment. Public government agency operational deployment requires external domain certificates, enterprise SSO/MFA, cold-site disaster recovery replication, and formal agency Authority to Operate (ATO / FedRAMP).

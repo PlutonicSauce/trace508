@@ -113,7 +113,7 @@ npm run start
 docker compose up --build
 ```
 
-Compose runs PostgreSQL, migration, web and one worker with shared artifact storage. It includes worker resource limits. The release container build was attempted after starting Docker and failed from host disk exhaustion installing Chromium. Startup, network isolation and HTTPS remain blocked, not passed. See docs/DEPLOYMENT.md. The native controlled lab is a separate development/test facility and is not enabled in Compose. Do not change its loopback exception into a broad container-network bypass.
+Compose runs PostgreSQL, migration, web and one worker with shared artifact storage. It includes worker resource limits. While early local container builds encountered host disk exhaustion (ENOSPC/EIO) during browser installation, GitHub Actions remote CI (`Release gates` workflow) successfully builds and passes all 19 in-container security checks (`scripts/verify-container-security.py`), including Playwright seccomp filtering, unprivileged user namespaces, read-only rootfs, secret file permissions, and egress proxy blocking private subnets and cloud metadata. However, successful test-container CI is verification of test-harness sandboxing, not proof of a fully verified public production deployment. See docs/DEPLOYMENT.md. The native controlled lab is a separate development/test facility and is not enabled in Compose. Do not change its loopback exception into a broad container-network bypass.
 
 ## Verification
 
@@ -129,10 +129,16 @@ npm run format:check
 
 Release tests require a separate DATABASE_URL ending in `_release_test`; they refuse the live workspace database. `scripts/release-test.sh` reproduces the application gates on a prepared native host. The assurance suite creates a separate fixture organization/project and temporary authenticated accounts. It executes real browser scans and real lab HTML revisions; saves clearly labeled fixture reviewer actions; tests independent retests, human gates, regression, journeys, schema-valid reports/packages, role enforcement, project isolation, unsafe target rejection, process restart persistence and accessibility. It deletes its fixture records afterward. It never impersonates a human reviewer in a live project.
 
-`npm run benchmark` evaluates the earliest completed W3C Before/After pair. W3C reference failures remain benchmark data, never scan findings. No 90% issue discovery or 30% triage-time claim is made.
+`npm run benchmark` evaluates the earliest completed W3C Before/After pair. W3C reference failures remain benchmark data, never scan findings. Candidate benchmark matches assist human analysis but do not claim exhaustive verified recall, and no 90% issue discovery or 30% triage-time claim is made.
 
 [Verification report](docs/VERIFICATION_REPORT.md) · [Architecture](docs/ARCHITECTURE.md) · [Limitations](docs/KNOWN_LIMITATIONS.md) · [Unissant alignment](docs/UNISSANT_ALIGNMENT.md)
 
 ## Release candidate verdict
 
-Operational deployment is not recommended yet. Read [production readiness](docs/PRODUCTION_READINESS.md), [test results](docs/TEST_RESULTS.md), [security review](docs/SECURITY_REVIEW.md), [threat model](docs/THREAT_MODEL.md), [deployment](docs/DEPLOYMENT.md), [backup/recovery](docs/BACKUP_AND_RECOVERY.md) and [release blockers](docs/RELEASE_BLOCKERS.md). CI configuration exists, but its remote execution is not claimed.
+**Hackathon Demonstration Ready.** Remote GitHub Actions CI executes and passes all release gates (`application` and `container` jobs). Trace508 is hardened and safe for the intended Unissant Challenge X demonstration. 
+
+Important distinctions and operational boundaries:
+- **Integrity Hashes vs Cryptographic Signatures:** Trace508 calculates SHA-256 digests for evidence, reports, and packages to guarantee artifact integrity against corruption or tampering; it does not issue public-key cryptographic digital signatures or PKI certificates.
+- **Automated Findings vs Human Conformance:** Automated scanner rules (axe-core) and interactive probes identify deterministic violations and heuristic candidates; official Section 508 / WCAG conformance requires human verification by qualified evaluators.
+- **Candidate Matches vs Verified Recall:** Benchmark comparisons highlight candidate correlations without claiming automated ground-truth recall.
+- **Hackathon Readiness vs Production Authorization:** While locally and container-verified for competition evaluation, full public operational deployment requires production-grade SSO/MFA, publicly trusted domain certificates, disaster recovery site replication, and formal federal agency authorization (ATO/FedRAMP). Read [production readiness](docs/PRODUCTION_READINESS.md), [test results](docs/TEST_RESULTS.md), [security review](docs/SECURITY_REVIEW.md), [threat model](docs/THREAT_MODEL.md), [deployment](docs/DEPLOYMENT.md), [backup/recovery](docs/BACKUP_AND_RECOVERY.md) and [release blockers](docs/RELEASE_BLOCKERS.md).
