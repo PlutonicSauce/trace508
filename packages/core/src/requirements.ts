@@ -75,6 +75,15 @@ export function mapTags(tags: string[]) {
     .filter((r) => tags.includes(`wcag${r.id.replaceAll('.', '')}`))
     .map((r) => r.id);
 }
+export function mapRuleToRequirements(ruleId: string, tags: string[]): string[] {
+  const reqs = new Set(mapTags(tags));
+  if (ruleId === 'label' || ruleId === 'select-name' || ruleId === 'input-button-name') {
+    reqs.add('1.3.1');
+    reqs.add('3.3.2');
+    reqs.add('4.1.2');
+  }
+  return Array.from(reqs);
+}
 export function priority(impact: string) {
   return (
     ({ critical: 1, serious: 2, moderate: 3, minor: 4 } as Record<string, number>)[impact] ?? 5

@@ -8,10 +8,12 @@ import { db } from '../../packages/core/src/db';
 import { hash, stableId, evidenceHash } from '../../packages/core/src/ids';
 import {
   mapTags,
+  mapRuleToRequirements,
   MAPPING_VERSION,
   priority,
   requirements,
 } from '../../packages/core/src/requirements';
+import { runInteractiveProbes } from '../../packages/core/src/probes';
 import {
   validateUrl,
   resolvePublicHost,
@@ -179,11 +181,12 @@ export async function scanAssessment(
       if (requests > 400)
         throw new Error('Scan resource budget exceeded; no complete-scan claim can be made.');
       const result = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa']).analyze();
+      const probeViolations = await runInteractiveProbes(page);
       const title = await page.title();
       const dom = await page.content();
       if (Buffer.byteLength(dom) > 1000000)
         throw new Error('DOM evidence exceeded the one-megabyte state budget.');
-      rawPages.push({ pageId: record.id, url: page.url(), result });
+      rawPages.push({ pageId: record.id, url: page.url(), result, probes: probeViolations });
       const directory = localPath('evidence', id);
       await mkdir(directory, { recursive: true, mode: 0o700 });
       const screenshot = path.join(directory, `${record.id}.png`);
@@ -275,7 +278,7 @@ export async function scanAssessment(
                 },
               });
             }
-            for (const requirementId of mapTags(violation.tags))
+            for (const requirementId of mapRuleToRequirements(violation.id, violation.tags))
               await tx.findingRequirement.create({
                 data: {
                   findingId: fid,
@@ -306,11 +309,84 @@ export async function scanAssessment(
                 id: stableId(fid, 'validate'),
                 assessmentId: id,
                 pageId: record.id,
-                requirementId: mapTags(violation.tags)[0] ?? '4.1.2',
+                requirementId: mapRuleToRequirements(violation.id, violation.tags)[0] ?? '4.1.2',
                 findingId: fid,
                 kind: 'finding',
                 reason:
                   'Validate this scanner finding against the live element. Confirm or reject the observation with test steps. This decision does not approve criterion conformance.',
+              },
+            });
+          }
+          for (const probe of probeViolations) {
+            const fid = stableId(record.id, probe.id);
+            await tx.finding.create({
+              data: {
+                id: fid,
+                assessmentId: id,
+                pageId: record.id,
+                ruleId: probe.id,
+                impact: probe.impact,
+                description: probe.description,
+                help: probe.help,
+                helpUrl: probe.helpUrl,
+                tags: probe.tags,
+              },
+            });
+            for (let n = 0; n < probe.nodes.length; n++) {
+              const node = probe.nodes[n];
+              await tx.evidence.create({
+                data: {
+                  id: stableId(fid, String(n)),
+                  pageId: record.id,
+                  findingId: fid,
+                  kind: 'interactive-probe',
+                  selector: JSON.stringify(node.target),
+                  html: node.html,
+                  summary: node.failureSummary,
+                  payload: JSON.parse(JSON.stringify(node.details ?? node)),
+                  sha256: evidenceHash(node),
+                  hashScheme: 'canonical-json-sha256-v1',
+                  screenshot,
+                  screenshotSha256,
+                },
+              });
+            }
+            for (const requirementId of probe.requirements)
+              await tx.findingRequirement.create({
+                data: {
+                  findingId: fid,
+                  requirementId,
+                  method: 'interactive Playwright probe; behavioral criterion coverage',
+                  version: MAPPING_VERSION,
+                },
+              });
+            await tx.remediation.create({
+              data: {
+                id: stableId(fid, 'remediation'),
+                findingId: fid,
+                priority: priority(probe.impact),
+                guidance: probe.nodes[0]?.failureSummary ?? probe.help,
+                verification: `Resolve the interactive barrier, verify keyboard operability and focus indicators, then re-test.`,
+              },
+            });
+            await tx.remediationEvent.create({
+              data: {
+                remediationId: stableId(fid, 'remediation'),
+                status: 'open',
+                actor: 'scan-worker',
+                notes: `Observed interactive probe ${probe.id}; original finding ${fid}. No remediation claim yet.`,
+              },
+            });
+            await tx.reviewTask.create({
+              data: {
+                id: stableId(fid, 'validate'),
+                assessmentId: id,
+                pageId: record.id,
+                requirementId: probe.requirements[0] ?? '2.1.1',
+                findingId: fid,
+                kind: 'finding',
+                reason:
+                  'Validate this interactive probe finding against the live element. Exercise keyboard navigation and focus indicators to confirm.',
               },
             });
           }

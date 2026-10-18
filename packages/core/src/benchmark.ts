@@ -2,12 +2,21 @@ import dataset from '../../../data/reference-issues.json' with { type: 'json' };
 import type { AssessmentDetail } from './assessment';
 import { db } from './db';
 import { z } from 'zod';
-const rules: Record<string, string[]> = {
+export const benchmarkTechniqueRules: Record<string, string[]> = {
   F65: ['image-alt', 'input-image-alt', 'area-alt'],
   F89: ['link-name'],
-  F68: ['label', 'select-name'],
+  F68: ['label', 'select-name', 'input-button-name'],
   F24: ['color-contrast'],
+  F55: ['keyboard-focus-blur-suppression', 'keyboard-focus-trap'],
+  F78: ['keyboard-focus-indicator-missing'],
+  F54: ['pointer-event-missing-keyboard'],
+  F2: ['semantic-heading-simulated'],
+  F25: ['document-title-missing', 'document-title'],
+  F70: ['duplicate-id', 'duplicate-id-active'],
+  F71: ['text-lookalike'],
+  F30: ['image-text-alternative'],
 };
+const rules: Record<string, string[]> = benchmarkTechniqueRules;
 export async function saveBenchmarkDecision(value: unknown) {
   const data = z
     .object({
