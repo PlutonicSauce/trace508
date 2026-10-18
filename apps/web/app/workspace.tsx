@@ -2722,9 +2722,13 @@ function RemediationCard({
           >
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px' }}>
               <Badge tone="red">Original Failing State</Badge>
-              {tech && <small style={{ color: '#334155', fontSize: '0.75rem' }}>{tech.name}</small>}
+              {tech && (
+                <small style={{ color: '#0f172a', fontSize: '0.75rem', fontWeight: 600 }}>
+                  {tech.name}
+                </small>
+              )}
             </div>
-            <p style={{ fontSize: '0.8rem', margin: '4px 0', color: '#1e293b' }}>
+            <p style={{ fontSize: '0.8rem', margin: '4px 0', color: '#0f172a' }}>
               <strong>Selector:</strong>{' '}
               <code style={{ fontSize: '0.75rem' }}>
                 {f.evidence[0]?.selector?.slice(0, 60) || f.ruleId}
@@ -2748,7 +2752,7 @@ function RemediationCard({
                 <code>{f.evidence[0].html}</code>
               </pre>
             )}
-            <p style={{ fontSize: '0.78rem', color: '#334155', margin: '4px 0 0 0' }}>
+            <p style={{ fontSize: '0.78rem', color: '#1e293b', margin: '4px 0 0 0' }}>
               {f.evidence[0]?.summary || f.description}
             </p>
           </div>
@@ -2776,13 +2780,21 @@ function RemediationCard({
                     style={{
                       fontSize: '0.8rem',
                       margin: 0,
-                      fontWeight: 600,
-                      color: r.outcome === 'verified-resolved' ? '#16a34a' : '#d97706',
+                      fontWeight: 700,
+                      color: '#0f172a',
                     }}
                   >
-                    Retest {r.assessment.id.slice(0, 8)}: {r.outcome}
+                    Retest {r.assessment.id.slice(0, 8)}:{' '}
+                    <span
+                      style={{
+                        color: r.outcome === 'verified-resolved' ? '#166534' : '#9a3412',
+                        fontWeight: 700,
+                      }}
+                    >
+                      {r.outcome}
+                    </span>
                   </p>
-                  <p style={{ fontSize: '0.75rem', color: '#334155', margin: '2px 0 0 0' }}>
+                  <p style={{ fontSize: '0.75rem', color: '#1e293b', margin: '2px 0 0 0' }}>
                     {r.explanation}
                   </p>
                 </div>
@@ -2797,7 +2809,7 @@ function RemediationCard({
                   textAlign: 'center',
                 }}
               >
-                <p style={{ fontSize: '0.78rem', color: '#334155', margin: 0 }}>
+                <p style={{ fontSize: '0.78rem', color: '#1e293b', margin: 0 }}>
                   No independent retest run yet.
                 </p>
                 <button
@@ -2815,7 +2827,7 @@ function RemediationCard({
                 </button>
               </div>
             )}
-            <div style={{ marginTop: '8px', fontSize: '0.78rem', color: '#334155' }}>
+            <div style={{ marginTop: '8px', fontSize: '0.78rem', color: '#0f172a' }}>
               <strong>Verification:</strong> {f.remediation?.verification}
             </div>
           </div>
