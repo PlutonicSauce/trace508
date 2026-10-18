@@ -9,7 +9,7 @@
 **Database Backup Snapshot:** `.local/backups/torture_test_baseline.sql` (12 MB)  
 **Pull Requests Merged:**
 
-- PR #2 (`harden-security-sandbox`) — Merged (`774bfd9`), verified with 19/19 in-container security checks passed.
+- PR #2 (`harden-security-sandbox`) — Merged (`774bfd9`), verified with 20/20 in-container security checks passed.
 - PR #3 (`feature/accessibility-discovery`) — Merged (`0d2c5d3`), verified with all release CI gates passed.
 
 ---
@@ -22,7 +22,7 @@
 
 1. **Core Demonstration Operates Without Flaws:** The complete end-to-end user workflow—from initial authentication, opening live W3C assessments, inspecting deterministic findings (F55, F78, F46) and candidate barriers (F54, F2), navigating the human review interface with preliminary non-binding suggestions, to generating cryptographically signed OpenACR and DOCX reports—executes cleanly without errors.
 2. **Zero P0 / P1 Release Blockers:** Across 32 adversarial torture assertions spanning authentication abuse, SSRF/BOLA isolation, cryptographic evidence tampering, schema validation, and responsiveness, all 32 passed.
-3. **Container Sandboxing & Security Intact:** In-container verification proves the browser container executes with unprivileged user namespace sandboxing (no `--no-sandbox` bypass), active Playwright seccomp filter (Seccomp: 2), 0 database credentials exposed, read-only root filesystem, and strict egress proxy blocks on AWS/GCP metadata (`169.254.169.254`) and private RFC 1918 subnets (19/19 passing).
+3. **Container Sandboxing & Security Intact:** In-container verification proves the browser container executes with unprivileged user namespace sandboxing (no `--no-sandbox` bypass), active Playwright seccomp filter (Seccomp: 2), 0 database credentials exposed, read-only root filesystem, and strict egress proxy blocks on AWS/GCP metadata (`169.254.169.254`) and private RFC 1918 subnets (20/20 passing).
 4. **Self-Dogfooding Accessibility Passing:** Trace508's own user interface was subjected to automated axe-core accessibility gates across all primary views (`overview`, `findings`, `review`, `remediation`, `reports`) with 0 violations. Responsive layout tests at 375px mobile and 768px tablet viewports confirm zero horizontal overflow.
 5. **No Speculative or Fabricated Conformance Claims:** Preliminary applicability suggestions are recorded non-destructively in review tasks without fabricating human `ReviewerDecision` records. All WCAG criteria remain unresolved until formally evaluated by an authorized reviewer.
 6. **Scoped and Honest Coverage Baseline:** Automated discovery specifically targets high-signal failure techniques without claiming exhaustive WCAG coverage. Full compliance requires human review.
@@ -43,8 +43,8 @@
 | **Phase 8: W3C Benchmark Audit & Conformance**           |      2       |    2    |   0   |    0    |     0      |   100%    |
 | **Subtotal (Adversarial Torture Test Suite Assertions)** |    **32**    | **32**  | **0** |  **0**  |   **0**    | **100%**  |
 | **Regression Suites (Vitest Unit/Integrity/Security)**   |      81      |   81    |   0   |    0    |     0      |   100%    |
-| **Container Security Verification Gates**                |      19      |   19    |   0   |    0    |     0      |   100%    |
-| **TOTAL MACHINE-VERIFIED ASSERTIONS**                    |   **132**    | **132** | **0** |  **0**  |   **0**    | **100%**  |
+| **Container Security Verification Gates**                |      20      |   20    |   0   |    0    |     0      |   100%    |
+| **TOTAL MACHINE-VERIFIED ASSERTIONS**                    |   **133**    | **133** | **0** |  **0**  |   **0**    | **100%**  |
 
 ---
 

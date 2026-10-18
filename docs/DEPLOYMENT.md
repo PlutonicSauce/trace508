@@ -1,6 +1,6 @@
 # Self-hosted deployment
 
-Verdict: **Hackathon Demonstration Ready; Public Production Authorization Pending.** While early local container builds failed from host disk exhaustion (ENOSPC/EIO) during Chromium installation, remote CI in GitHub Actions (`Release gates` workflow) successfully builds and passes all 19 in-container security and sandboxing checks (`scripts/verify-container-security.py`) using `deploy/compose.test.yaml`. Note that successful test-container CI (using internal loopback TLS) verifies container architecture and sandboxing controls, but is not proof of a fully verified public production deployment (which requires publicly trusted domain TLS, enterprise SSO/MFA, and federal authorization).
+Verdict: **Hackathon Demonstration Ready; Public Production Authorization Pending.** While early local container builds failed from host disk exhaustion (ENOSPC/EIO) during Chromium installation, remote CI in GitHub Actions (`Release gates` workflow) successfully builds and passes all 20 in-container security and sandboxing checks (`scripts/verify-container-security.py`) using `deploy/compose.test.yaml`. Note that successful test-container CI (using internal loopback TLS) verifies container architecture and sandboxing controls, but is not proof of a fully verified public production deployment (which requires publicly trusted domain TLS, enterprise SSO/MFA, and federal authorization).
 
 ## Requirements and installation
 
