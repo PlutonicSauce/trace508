@@ -154,6 +154,10 @@ export async function generateReport(
     p(
       'DRAFT ONLY. Incomplete evaluation. This is a review working document informed by ITI VPAT® 2.5Rev 508 (April 2025), not a completed official VPAT® or procurement-ready ACR. Blank conformance cells require human evaluation. No automated pass establishes conformance. Product scope and additional Section 508 chapters require ratification.',
     ),
+    h('Reviewer qualification and cryptographic integrity'),
+    p(
+      'Cryptographic evidence digests (SHA-256) provide mathematical proof of payload tamper-resistance and record integrity across assessment cycles. A cryptographic hash does not constitute verification of the evaluator’s professional credentials, Section 508 certification, or human identity. Professional qualifications (e.g., DHS Trusted Tester, IAAP WAS/CPACC) and attested testing methodologies are documented separately in the audit log.',
+    ),
     h('Conformance terminology'),
     p(
       'Supports; Partially Supports; Does Not Support; Not Applicable. Only saved evidence-backed criterion decisions can populate conformance cells. Unresolved draft cells remain blank. Not Evaluated is not used as an A/AA conformance term.',
@@ -176,7 +180,7 @@ export async function generateReport(
                   .flatMap((t) => t.decisions.slice(0, 1))
                   .map(
                     (d) =>
-                      `${d.reviewer}${d.invalidatedAt ? ' [INVALIDATED]' : ''}: ${d.notes} [${((d.evidenceIds as string[]) || []).join(', ')}]`,
+                      `${d.reviewer}${d.reviewerQualification ? ` (${d.reviewerQualification})` : ''}${d.invalidatedAt ? ' [INVALIDATED]' : ''}: ${d.notes} [${((d.evidenceIds as string[]) || []).join(', ')}]`,
                   )
                   .join(' ')}`,
           ]),

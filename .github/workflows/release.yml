@@ -58,12 +58,17 @@ jobs:
   container:
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    env:
+      APP_ORIGIN: https://localhost:8443
+      SITE_ADDRESS: localhost
     steps:
       - uses: actions/checkout@v4
       - run: docker build -t trace508:rc .
       - run: python3 scripts/deployment-secrets.py
       - run: APP_ORIGIN=https://localhost:8443 SITE_ADDRESS=localhost docker compose -f compose.yaml -f deploy/compose.test.yaml up -d --wait
       - run: curl --fail --insecure https://localhost:8443/api/health
+      - name: Verify container security, sandboxing, and secret permissions
+        run: python3 scripts/verify-container-security.py
       - if: always()
         run: APP_ORIGIN=https://localhost:8443 SITE_ADDRESS=localhost docker compose -f compose.yaml -f deploy/compose.test.yaml logs --no-color > container.log
       - uses: actions/upload-artifact@v4
