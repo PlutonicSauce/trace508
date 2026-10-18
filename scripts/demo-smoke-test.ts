@@ -1,10 +1,31 @@
 import { chromium } from 'playwright';
 import path from 'node:path';
+import fs from 'node:fs';
 import { db } from '../packages/core/src/db';
 
 const ARTIFACTS_DIR =
   '/Users/seshank/.gemini/antigravity-ide/brain/41a677f6-b643-47ad-9298-0fba22fb586a';
 const BASE_URL = 'http://127.0.0.1:3000';
+
+function getAuditorCredentials(): { email: string; password: string } {
+  const email = (process.env.AUDITOR_EMAIL || 'auditor@trace508.local').trim();
+  if (process.env.AUDITOR_PASSWORD) {
+    return { email, password: process.env.AUDITOR_PASSWORD };
+  }
+  const secretPaths = [
+    path.join(process.cwd(), '.local', 'auditor_password'),
+    path.join(process.cwd(), '.local', 'secrets', 'auditor_password'),
+  ];
+  for (const sp of secretPaths) {
+    if (fs.existsSync(sp)) {
+      const pass = fs.readFileSync(sp, 'utf8').trim();
+      if (pass) return { email, password: pass };
+    }
+  }
+  throw new Error(
+    'Auditor credentials not found. Please provide AUDITOR_PASSWORD environment variable or store password in .local/auditor_password.',
+  );
+}
 
 async function main() {
   console.log('--- STARTING TRACE508 DEMO SMOKE TEST ---');
@@ -28,14 +49,17 @@ async function main() {
     console.log('2. Confirming login interface and signing in...');
     await page.screenshot({ path: path.join(ARTIFACTS_DIR, 'demo_smoke_1_login_page.png') });
 
-    await emailInput.fill('auditor@trace508.local');
-    await passwordInput.fill('Trace508DemoAuditor2026!');
+    const creds = getAuditorCredentials();
+    await emailInput.fill(creds.email);
+    await passwordInput.fill(creds.password);
 
     const signInButton = page.getByRole('button', { name: 'Sign in' });
     await signInButton.click();
 
     // Wait for authenticated navigation
-    await page.waitForSelector('.feature-title, .dashboard, nav', { timeout: 15000 });
+    await page.waitForSelector('.auth-shell', { state: 'detached', timeout: 15000 });
+    await page.waitForSelector('.feature-title', { timeout: 15000 });
+    await page.waitForLoadState('networkidle');
     console.log('   -> Successfully logged in as auditor@trace508.local');
   } else {
     console.log('   -> Already authenticated or session restored.');

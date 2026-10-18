@@ -13,6 +13,26 @@ import AxeBuilder from '@axe-core/playwright';
 
 const BASE_URL = 'http://127.0.0.1:3000';
 
+function getAuditorCredentials(): { email: string; password: string } {
+  const email = (process.env.AUDITOR_EMAIL || 'auditor@trace508.local').trim();
+  if (process.env.AUDITOR_PASSWORD) {
+    return { email, password: process.env.AUDITOR_PASSWORD };
+  }
+  const secretPaths = [
+    path.join(process.cwd(), '.local', 'auditor_password'),
+    path.join(process.cwd(), '.local', 'secrets', 'auditor_password'),
+  ];
+  for (const sp of secretPaths) {
+    if (fs.existsSync(sp)) {
+      const pass = fs.readFileSync(sp, 'utf8').trim();
+      if (pass) return { email, password: pass };
+    }
+  }
+  throw new Error(
+    'Auditor credentials not found. Please provide AUDITOR_PASSWORD environment variable or store password in .local/auditor_password.',
+  );
+}
+
 export type TestResult = {
   id: string;
   category: string;
@@ -221,12 +241,13 @@ async function run() {
     // Test 1.5: Valid authentication succeeds and sets HttpOnly SameSite cookie
     let sessionCookie = '';
     try {
+      const creds = getAuditorCredentials();
       const res = await fetch(`${BASE_URL}/api/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          email: 'auditor@trace508.local',
-          password: 'Trace508DemoAuditor2026!',
+          email: creds.email,
+          password: creds.password,
         }),
       });
       const setCookie = res.headers.get('set-cookie') || '';
@@ -780,8 +801,9 @@ async function run() {
       await page.goto(BASE_URL);
       const emailInput = page.locator('#login-email');
       if (await emailInput.isVisible()) {
-        await emailInput.fill('auditor@trace508.local');
-        await page.locator('#login-password').fill('Trace508DemoAuditor2026!');
+        const creds = getAuditorCredentials();
+        await emailInput.fill(creds.email);
+        await page.locator('#login-password').fill(creds.password);
         await page.getByRole('button', { name: 'Sign in' }).click();
         await page.waitForSelector('.feature-title, nav', { timeout: 15000 });
       }
