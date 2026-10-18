@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import { passwordHash, checkPassword, validatePassword } from '../packages/core/src/passwords';
 import { providerExplanation } from '../packages/core/src/ai';
-import { assertOrigin, validateUrl } from '../packages/core/src/security';
+import { assertOrigin, validateUrl, isPublicIp } from '../packages/core/src/security';
 afterEach(() => vi.unstubAllEnvs());
 describe('credential policy and hashing', () => {
   it('rejects short, repeated and known common secrets; accepts passphrases and Unicode', () => {
@@ -125,4 +125,95 @@ describe('URL parser adversarial cases', () => {
       validateUrl(u, false, { origin: 'https://example.com', pathPrefix: '/' }),
     ).toThrow(),
   );
+});
+
+describe('Egress proxy and network isolation IP verification', () => {
+  it('blocks cloud metadata, private, loopback, and reserved addresses', () => {
+    const blocked = [
+      '169.254.169.254', // AWS / GCP / Azure cloud metadata
+      '169.254.1.1', // Link-local
+      '127.0.0.1', // Loopback
+      '10.0.0.1', // RFC 1918 Private class A
+      '172.16.0.1', // RFC 1918 Private class B
+      '192.168.1.1', // RFC 1918 Private class C
+      '0.0.0.0', // Unspecified
+      '224.0.0.1', // Multicast
+      '::1', // IPv6 Loopback
+      'fe80::1', // IPv6 Link-local
+    ];
+    for (const ip of blocked) {
+      expect(isPublicIp(ip)).toBe(false);
+    }
+  });
+
+  it('permits public unicast routable addresses', () => {
+    const publicIps = ['93.184.216.34', '8.8.8.8', '142.250.190.46'];
+    for (const ip of publicIps) {
+      expect(isPublicIp(ip)).toBe(true);
+    }
+  });
+});
+
+describe('Reviewer qualification vs cryptographic integrity modeling', () => {
+  it('validates human reviewer qualification and testing methodology in decision schema', async () => {
+    const { decisionSchema } = await import('../packages/core/src/review');
+    const valid = decisionSchema.safeParse({
+      reviewer: 'Qualified Evaluator',
+      reviewerQualification: 'DHS Certified Trusted Tester v5.0',
+      methodology: 'DHS Trusted Tester Process v5.0',
+      outcome: 'Supports',
+      notes: 'Verified accessible markup meets all requirements.',
+      observation: 'Proper semantic structure and valid accessible name present.',
+      evidenceIds: [],
+    });
+    expect(valid.success).toBe(true);
+    if (valid.success) {
+      expect(valid.data.reviewerQualification).toBe('DHS Certified Trusted Tester v5.0');
+      expect(valid.data.methodology).toBe('DHS Trusted Tester Process v5.0');
+    }
+  });
+
+  it('rejects oversized qualification or methodology strings', async () => {
+    const { decisionSchema } = await import('../packages/core/src/review');
+    const invalid = decisionSchema.safeParse({
+      reviewer: 'Qualified Evaluator',
+      reviewerQualification: 'x'.repeat(300),
+      outcome: 'Supports',
+      notes: 'Valid notes',
+      observation: 'Valid observation',
+      evidenceIds: [],
+    });
+    expect(invalid.success).toBe(false);
+  });
+});
+
+describe('Deployment secrets generator permissions', () => {
+  it('enforces 0700 on directory and 0644 non-writable files for container bind-mounts', async () => {
+    const fs = await import('node:fs/promises');
+    const path = await import('node:path');
+    const os = await import('node:os');
+    const { execFileSync } = await import('node:child_process');
+
+    const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'trace508-sec-test-'));
+    try {
+      execFileSync('python3', [path.resolve('scripts/deployment-secrets.py')], {
+        env: { ...process.env, SECRETS_DIR: tempDir },
+      });
+
+      const dirStat = await fs.stat(tempDir);
+      // Directory must be 0700 (owner rwx only, blocking unrelated host users)
+      expect(dirStat.mode & 0o777).toBe(0o700);
+
+      for (const secretFile of ['db_password', 'database_url']) {
+        const filePath = path.join(tempDir, secretFile);
+        const fileStat = await fs.stat(filePath);
+        // File must be 0644 (workable for container bind mounts with mismatched UIDs)
+        expect(fileStat.mode & 0o777).toBe(0o644);
+        // Absolutely no group or world write permissions
+        expect(fileStat.mode & 0o022).toBe(0);
+      }
+    } finally {
+      await fs.rm(tempDir, { recursive: true, force: true });
+    }
+  });
 });

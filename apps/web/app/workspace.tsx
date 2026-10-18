@@ -2000,6 +2000,8 @@ function ReviewForm({
   onSave: (body: unknown) => Promise<void>;
 }) {
   const [reviewer, setReviewer] = useState(''),
+    [reviewerQualification, setReviewerQualification] = useState('DHS Certified Trusted Tester'),
+    [methodology, setMethodology] = useState('Revised Section 508 / ICT Testing Baseline'),
     [notes, setNotes] = useState(''),
     [observation, setObservation] = useState(''),
     [outcome, setOutcome] = useState(''),
@@ -2076,6 +2078,8 @@ function ReviewForm({
           try {
             await onSave({
               reviewer,
+              reviewerQualification,
+              methodology,
               notes,
               outcome,
               evidenceIds: ids,
@@ -2091,6 +2095,18 @@ function ReviewForm({
           }
         }}
       >
+        <div className="alert neutral" style={{ marginBottom: '16px' }}>
+          <ClipboardCheck size={20} />
+          <div>
+            <strong>Cryptographic Evidence vs. Reviewer Qualification:</strong>
+            <p style={{ margin: '4px 0 0 0', fontSize: '0.85rem' }}>
+              SHA-256 cryptographic evidence hashes ensure tamper-resistant record integrity; they
+              do not certify evaluator qualifications. Select your verified professional credentials
+              and evaluation methodology below.
+            </p>
+          </div>
+        </div>
+
         <div className="two-fields">
           <div>
             <label htmlFor="reviewer">Authenticated reviewer</label>
@@ -2122,6 +2138,65 @@ function ReviewForm({
                 </option>
               ))}
             </select>
+          </div>
+        </div>
+
+        <div className="two-fields" style={{ marginTop: '12px' }}>
+          <div>
+            <label htmlFor="reviewerQualification">Evaluator qualification (recorded claim)</label>
+            <select
+              id="reviewerQualification"
+              value={reviewerQualification}
+              onChange={(e) => setReviewerQualification(e.target.value)}
+            >
+              <option value="DHS Certified Trusted Tester">DHS Certified Trusted Tester</option>
+              <option value="IAAP Web Accessibility Specialist (WAS)">
+                IAAP Web Accessibility Specialist (WAS)
+              </option>
+              <option value="IAAP Certified Professional in Accessibility Core Competencies (CPACC)">
+                IAAP CPACC
+              </option>
+              <option value="Qualified Section 508 Specialist">
+                Qualified Section 508 Specialist
+              </option>
+              <option value="Self-Attested Auditor (Unverified)">
+                Self-Attested Auditor (Unverified)
+              </option>
+            </select>
+            <p
+              className="field-hint"
+              style={{ fontSize: '11px', color: '#64748b', marginTop: '4px' }}
+            >
+              Recorded attestation. SHA-256 seals documented assessment work; does not independently
+              certify professional credentials.
+            </p>
+          </div>
+          <div>
+            <label htmlFor="methodology">Evaluation methodology (documented)</label>
+            <select
+              id="methodology"
+              value={methodology}
+              onChange={(e) => setMethodology(e.target.value)}
+            >
+              <option value="Revised Section 508 / ICT Testing Baseline">
+                Revised Section 508 / ICT Baseline
+              </option>
+              <option value="DHS Trusted Tester Process v5.0">
+                DHS Trusted Tester Process v5.0
+              </option>
+              <option value="WCAG-EM Comprehensive Evaluation Methodology">
+                WCAG-EM Comprehensive Evaluation
+              </option>
+              <option value="Manual Assistive Technology & Screen Reader Testing">
+                Manual Assistive Tech / Screen Reader
+              </option>
+            </select>
+            <p
+              className="field-hint"
+              style={{ fontSize: '11px', color: '#64748b', marginTop: '4px' }}
+            >
+              Standard testing protocol followed for this evaluation.
+            </p>
           </div>
         </div>
         <label htmlFor="observation">
@@ -2259,6 +2334,19 @@ function IntegrityWorkspace({
           <Badge tone={blockedCount > 0 ? 'red' : validatedCount > 0 ? 'green' : 'amber'}>
             {blockedCount > 0 ? `${blockedCount} blocked conclusions` : 'Integrity verified'}
           </Badge>
+        </div>
+        <div className="alert neutral" style={{ margin: '16px 0' }}>
+          <ShieldAlert size={20} />
+          <div>
+            <strong>Reviewer Qualification vs. Cryptographic Integrity:</strong>
+            <p style={{ margin: '4px 0 0 0', fontSize: '0.88rem' }}>
+              Trace508 enforces SHA-256 cryptographic hashing to prove evidence tamper-resistance
+              across the assessment lifecycle. However, cryptographic digests alone do not establish
+              evaluator qualifications. Formal Section 508 / VPAT® claims require verified evaluator
+              credentials (such as DHS Trusted Tester or IAAP WAS/CPACC) and attested ICT Baseline
+              testing procedures.
+            </p>
+          </div>
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px' }}>
           <div className="panel" style={{ padding: '20px' }}>

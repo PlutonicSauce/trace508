@@ -135,18 +135,20 @@ model ReviewTask {
  status String @default("open")
  decisions ReviewerDecision[]
 }
-model ReviewerDecision {
- id String @id @default(uuid())
- taskId String
- task ReviewTask @relation(fields:[taskId],references:[id],onDelete:Cascade)
- reviewer String
- outcome String
- notes String
- evidenceIds Json
- invalidatedAt DateTime?
- invalidationReason String?
- createdAt DateTime @default(now())
-}
+ model ReviewerDecision {
+  id String @id @default(uuid())
+  taskId String
+  task ReviewTask @relation(fields:[taskId],references:[id],onDelete:Cascade)
+  reviewer String
+  reviewerQualification String?
+  methodology String?
+  outcome String
+  notes String
+  evidenceIds Json
+  invalidatedAt DateTime?
+  invalidationReason String?
+  createdAt DateTime @default(now())
+ }
 model Remediation {
  id String @id
  findingId String @unique

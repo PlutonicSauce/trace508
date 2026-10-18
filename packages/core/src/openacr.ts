@@ -64,13 +64,15 @@ export function openacrDocument(
     catalog: '2.4-edition-wcag-2.0-508-en',
     notes:
       'INCOMPLETE DRAFT. Additional Section 508 chapter applicability remains unresolved. No procurement-ready or organizational approval is asserted. Unresolved criteria deliberately omit adherence. ' +
+      'EVIDENCE INTEGRITY NOTICE: Cryptographic SHA-256 evidence digests guarantee payload tamper-resistance and record integrity; they do not attest to the professional credentials, certification status, or identity of the human evaluator. Evaluator qualification and methodology are recorded separately in the audit trail. ' +
       (integrityWarnings.length
         ? `INTEGRITY WARNING: Conformance conclusions withheld for ${integrityWarnings.length} criteria due to unsupported or mismatched evidence: ${integrityWarnings.map((r: any) => r.id).join(', ')}. `
         : '') +
       snapshot.chapterApplicability,
-    evaluation_methods_used: snapshot.assessment.scanRuns
-      .map((r: any) => `${r.scannerVersion}; browser ${r.browserVersion ?? 'not recorded'}`)
-      .join('; '),
+    evaluation_methods_used:
+      snapshot.assessment.scanRuns
+        .map((r: any) => `${r.scannerVersion}; browser ${r.browserVersion ?? 'not recorded'}`)
+        .join('; ') + '; Evaluator attestation and Section 508 / ICT Baseline testing methodology',
     chapters,
   };
   if (!validator(doc))
