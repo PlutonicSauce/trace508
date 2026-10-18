@@ -8,10 +8,12 @@ import { db } from '../../packages/core/src/db';
 import { hash, stableId, evidenceHash } from '../../packages/core/src/ids';
 import {
   mapTags,
+  mapRuleToRequirements,
   MAPPING_VERSION,
   priority,
   requirements,
 } from '../../packages/core/src/requirements';
+import { runInteractiveProbeSuite } from '../../packages/core/src/probes';
 import {
   validateUrl,
   resolvePublicHost,
@@ -179,11 +181,22 @@ export async function scanAssessment(
       if (requests > 400)
         throw new Error('Scan resource budget exceeded; no complete-scan claim can be made.');
       const result = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa']).analyze();
+      const {
+        violations: probeViolations,
+        tabSequence,
+        applicability,
+      } = await runInteractiveProbeSuite(page);
       const title = await page.title();
       const dom = await page.content();
       if (Buffer.byteLength(dom) > 1000000)
         throw new Error('DOM evidence exceeded the one-megabyte state budget.');
-      rawPages.push({ pageId: record.id, url: page.url(), result });
+      rawPages.push({
+        pageId: record.id,
+        url: page.url(),
+        result,
+        probes: probeViolations,
+        tabSequence,
+      });
       const directory = localPath('evidence', id);
       await mkdir(directory, { recursive: true, mode: 0o700 });
       const screenshot = path.join(directory, `${record.id}.png`);
@@ -241,6 +254,22 @@ export async function scanAssessment(
               screenshotSha256,
             },
           });
+          if (tabSequence && tabSequence.length > 0) {
+            const tabPayload = JSON.parse(JSON.stringify({ steps: tabSequence }));
+            await tx.evidence.create({
+              data: {
+                id: stableId(record.id, 'tab-sequence'),
+                pageId: record.id,
+                kind: 'tab-sequence',
+                summary: `Sequential keyboard Tab navigation trail (${tabSequence.length} interactive steps evaluated).`,
+                payload: tabPayload,
+                sha256: evidenceHash(tabPayload),
+                hashScheme: 'canonical-json-sha256-v1',
+                screenshot,
+                screenshotSha256,
+              },
+            });
+          }
           for (const violation of result.violations) {
             const fid = stableId(record.id, violation.id);
             await tx.finding.create({
@@ -258,6 +287,7 @@ export async function scanAssessment(
             });
             for (let n = 0; n < violation.nodes.length; n++) {
               const node = violation.nodes[n];
+              const nodePayload = JSON.parse(JSON.stringify(node));
               await tx.evidence.create({
                 data: {
                   id: stableId(fid, String(n)),
@@ -267,15 +297,15 @@ export async function scanAssessment(
                   selector: JSON.stringify(node.target),
                   html: node.html,
                   summary: node.failureSummary ?? violation.help,
-                  payload: JSON.parse(JSON.stringify(node)),
-                  sha256: evidenceHash(node),
+                  payload: nodePayload,
+                  sha256: evidenceHash(nodePayload),
                   hashScheme: 'canonical-json-sha256-v1',
                   screenshot,
                   screenshotSha256,
                 },
               });
             }
-            for (const requirementId of mapTags(violation.tags))
+            for (const requirementId of mapRuleToRequirements(violation.id, violation.tags))
               await tx.findingRequirement.create({
                 data: {
                   findingId: fid,
@@ -306,7 +336,7 @@ export async function scanAssessment(
                 id: stableId(fid, 'validate'),
                 assessmentId: id,
                 pageId: record.id,
-                requirementId: mapTags(violation.tags)[0] ?? '4.1.2',
+                requirementId: mapRuleToRequirements(violation.id, violation.tags)[0] ?? '4.1.2',
                 findingId: fid,
                 kind: 'finding',
                 reason:
@@ -314,7 +344,88 @@ export async function scanAssessment(
               },
             });
           }
-          for (const r of requirements)
+          for (const probe of probeViolations) {
+            const fid = stableId(record.id, probe.id);
+            await tx.finding.create({
+              data: {
+                id: fid,
+                assessmentId: id,
+                pageId: record.id,
+                ruleId: probe.id,
+                impact: probe.impact,
+                description: probe.description,
+                help: probe.help,
+                helpUrl: probe.helpUrl,
+                tags: probe.tags,
+              },
+            });
+            for (let n = 0; n < probe.nodes.length; n++) {
+              const node = probe.nodes[n];
+              const payload = JSON.parse(JSON.stringify(node));
+              await tx.evidence.create({
+                data: {
+                  id: stableId(fid, String(n)),
+                  pageId: record.id,
+                  findingId: fid,
+                  kind: 'interactive-probe',
+                  selector: JSON.stringify(node.target),
+                  html: node.html,
+                  summary: node.failureSummary,
+                  payload,
+                  sha256: evidenceHash(payload),
+                  hashScheme: 'canonical-json-sha256-v1',
+                  screenshot,
+                  screenshotSha256,
+                },
+              });
+            }
+            for (const requirementId of probe.requirements)
+              await tx.findingRequirement.create({
+                data: {
+                  findingId: fid,
+                  requirementId,
+                  method: 'interactive Playwright probe; behavioral criterion coverage',
+                  version: MAPPING_VERSION,
+                },
+              });
+            await tx.remediation.create({
+              data: {
+                id: stableId(fid, 'remediation'),
+                findingId: fid,
+                priority: priority(probe.impact),
+                guidance: probe.nodes[0]?.failureSummary ?? probe.help,
+                verification: `Resolve the interactive barrier, verify keyboard operability and focus indicators, then re-test.`,
+              },
+            });
+            await tx.remediationEvent.create({
+              data: {
+                remediationId: stableId(fid, 'remediation'),
+                status: 'open',
+                actor: 'scan-worker',
+                notes: `Observed interactive probe ${probe.id}; original finding ${fid}. No remediation claim yet.`,
+              },
+            });
+            await tx.reviewTask.create({
+              data: {
+                id: stableId(fid, 'validate'),
+                assessmentId: id,
+                pageId: record.id,
+                requirementId: probe.requirements[0] ?? '2.1.1',
+                findingId: fid,
+                kind: 'finding',
+                reason:
+                  'Validate this interactive probe finding against the live element. Exercise keyboard navigation and focus indicators to confirm.',
+              },
+            });
+          }
+          for (const r of requirements) {
+            const suggestion = applicability[r.id];
+            const suggestionText = suggestion
+              ? `\n\n[Preliminary Applicability Suggestion]: ${suggestion.reason}`
+              : '';
+            const incompleteText = result.incomplete.some((v) => mapTags(v.tags).includes(r.id))
+              ? ' axe also reported inconclusive checks for this criterion.'
+              : '';
             await tx.reviewTask.create({
               data: {
                 id: stableId(record.id, r.id),
@@ -322,9 +433,11 @@ export async function scanAssessment(
                 pageId: record.id,
                 requirementId: r.id,
                 kind: 'criterion',
-                reason: `${r.reviewGuide} ${result.incomplete.some((v) => mapTags(v.tags).includes(r.id)) ? 'axe also reported inconclusive checks for this criterion.' : ''}`,
+                reason: `${r.reviewGuide}${incompleteText}${suggestionText}`,
+                status: 'open',
               },
             });
+          }
           await tx.auditEvent.create({
             data: {
               assessmentId: id,
@@ -344,6 +457,7 @@ export async function scanAssessment(
       if (state.status !== 'running') throw new Error('Assessment cancelled');
       await db.assessment.update({ where: { id }, data: { progress: 'Navigating ' + record.url } });
       const page = await context.newPage();
+      await page.addInitScript('window.__name = function(fn) { return fn; };');
       page.on('dialog', (d) => d.dismiss());
       page.on('popup', (p) => void p.close());
       const response = await page.goto(record.url, {

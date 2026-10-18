@@ -6,6 +6,7 @@ import { openacrDocument } from '../packages/core/src/openacr';
 import { generateReport } from '../packages/core/src/reports';
 import { AppError } from '../packages/core/src/errors';
 import { randomUUID } from 'node:crypto';
+import { evidenceHash, canonicalJson, stableId } from '../packages/core/src/ids';
 
 describe('Evidence-to-Requirement Integrity and Conformance Assurance', () => {
   const orgAId = `org-a-${randomUUID()}`;
@@ -439,6 +440,79 @@ describe('Evidence-to-Requirement Integrity and Conformance Assurance', () => {
 
     const task = await db.reviewTask.findUniqueOrThrow({ where: { id: task143Id } });
     expect(task.status).toBe('resolved');
+  });
+
+  it('9. Reloads interactive probe and tab-sequence evidence from PostgreSQL and verifies canonical SHA-256 integrity', async () => {
+    const probeEvidenceId = `ev-probe-${randomUUID()}`;
+    const tabEvidenceId = `ev-tab-${randomUUID()}`;
+
+    const probeNode = {
+      target: ['#test-link'],
+      html: '<a href="#test" id="test-link" onfocus="blur();">Link</a>',
+      failureSummary: 'Interactive component programmatically removes focus upon receipt (F55).',
+      details: { onfocus: 'blur();', tagName: 'a', step: 3 },
+    };
+    const probePayload = JSON.parse(JSON.stringify(probeNode));
+    const probeDigest = evidenceHash(probePayload);
+
+    await db.evidence.create({
+      data: {
+        id: probeEvidenceId,
+        pageId: pageAId,
+        kind: 'interactive-probe',
+        selector: JSON.stringify(probeNode.target),
+        html: probeNode.html,
+        summary: probeNode.failureSummary,
+        payload: probePayload,
+        sha256: probeDigest,
+        hashScheme: 'canonical-json-sha256-v1',
+      },
+    });
+
+    const tabPayload = JSON.parse(
+      JSON.stringify({
+        steps: [
+          { step: 1, selector: '#test-link', tag: 'a', text: 'Link', outline: 'none' },
+          {
+            step: 2,
+            selector: 'body',
+            tag: 'BODY',
+            text: '(Focus suppressed)',
+            hasLostFocus: true,
+          },
+        ],
+      }),
+    );
+    const tabDigest = evidenceHash(tabPayload);
+
+    await db.evidence.create({
+      data: {
+        id: tabEvidenceId,
+        pageId: pageAId,
+        kind: 'tab-sequence',
+        summary: 'Sequential keyboard Tab navigation trail (2 steps evaluated).',
+        payload: tabPayload,
+        sha256: tabDigest,
+        hashScheme: 'canonical-json-sha256-v1',
+      },
+    });
+
+    // Reload from PostgreSQL
+    const reloadedProbe = await db.evidence.findUniqueOrThrow({ where: { id: probeEvidenceId } });
+    const reloadedTab = await db.evidence.findUniqueOrThrow({ where: { id: tabEvidenceId } });
+
+    // Verify canonical integrity
+    expect(reloadedProbe.hashScheme).toBe('canonical-json-sha256-v1');
+    expect(evidenceHash(reloadedProbe.payload)).toBe(reloadedProbe.sha256);
+    expect(reloadedProbe.sha256).toBe(probeDigest);
+
+    expect(reloadedTab.hashScheme).toBe('canonical-json-sha256-v1');
+    expect(evidenceHash(reloadedTab.payload)).toBe(reloadedTab.sha256);
+    expect(reloadedTab.sha256).toBe(tabDigest);
+
+    // Verify detection of tampering if payload were modified
+    const tamperedPayload = { ...(reloadedProbe.payload as any), details: { tampered: true } };
+    expect(evidenceHash(tamperedPayload)).not.toBe(reloadedProbe.sha256);
   });
 
   afterAll(async () => {

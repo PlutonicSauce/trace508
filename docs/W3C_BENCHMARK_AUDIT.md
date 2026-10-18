@@ -12,24 +12,31 @@
 
 To ensure scientific rigor and avoid comparing scanner rule associations against mismatched baselines, Trace508 evaluates detection performance across two distinct, explicitly defined denominators, distinguishing **Confirmed True Positives** (rigorous issue-level supporting evidence) from **Candidate / Provisional Matches** (associated rule on the same page/criterion but differing mechanism):
 
-| Metric Dimension | Denominator Definition | Reference Total | Confirmed True Positives | Confirmed Recall | Candidate / Provisional Matches | Total Automated Candidates | Automated Candidate Recall | Human Review Tasks Generated | Adjudicated Recall at Handoff |
-|---|---|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
-| **Dimension 1: Failure Technique Units** | Page × WCAG Criterion × Published Failure Technique | **130** | **10** | **7.7%** | **13** | **23** | **17.7%** | **152 tasks (100%)** | **0.0%** (Honest ground truth) |
-| **Dimension 2: Page-Criterion Units** | Page × WCAG Failed Criterion Pairs | **77** | **10** | **13.0%** | **8** | **18** | **23.4%** | **152 tasks (100%)** | **0.0%** (Honest ground truth) |
+| Metric Dimension | Denominator Definition | Reference Total | Baseline Candidates (Axe Only) | Updated Engine Candidates (Interactive Probes) | Updated Candidate Coverage | Confirmed False Positives (After Scan) | Adjudicated Recall (Unresolved Reviews) |
+|---|---|:---:|:---:|:---:|:---:|:---:|:---:|
+| **Dimension 1: Failure Technique Units** | Page × WCAG Criterion × Published Failure Technique | **130** | **23** (17.7%) | **47** | **36.15%** | **0 (0.0%)** | **0.0%** (Unresolved) |
+| **Dimension 2: Page-Criterion Units** | Page × WCAG Failed Criterion Pairs | **77** | **18** (23.4%) | **34** | **44.15%** | **0 (0.0%)** | **0.0%** (Unresolved) |
 
-### Key Scientific Findings
-1. **Confirmed True Positives (10 units / 7.7%):**
-   - **F65 (Missing image alt):** Verified on Home (33 nodes), News (39 nodes), Tickets (26 nodes), and Survey (24 nodes).
-   - **F68 (Unassociated form controls):** Verified on Survey for 11 unassociated radio buttons lacking labels.
-   - **1.4.3 Contrast Narrative:** Verified on Home (2 table headers below 4.5:1) and Tickets (8 price table cells below 4.5:1).
-   - **3.1.1 Page Language Narrative:** Verified on Home, News, Tickets, and Survey (`<html>` tag completely omits `lang`).
-2. **Candidate / Provisional Matches (13 units):**
-   - **F89 (Image link text):** Axe-core flagged `link-name` because image-only links had missing alt attributes, whereas F89 technically designates `alt=""` null alternative text.
-   - **F68 (Jump menu select):** Flagged under `select-name` rather than `label`.
-   - **F24 (Foreground without background):** Table headers specify both colors but fail contrast ratio; classified as uncertain match for F24 specifically.
-3. **Contextual & Narrative Barriers (107 units):**
-   - The remaining units represent contextual or narrative barriers—such as whether alternative text conveys true cognitive meaning (F30), reading order linearization (F49), CSS visual presentation (F2), or cognitive error recovery cues (3.3.1)—that cannot be validated without human judgment.
-4. **No Fabricated Conformance:** At project handoff, Trace508 records **0% adjudicated recall**. While 152 structured human review tasks were generated, no artificial approvals were seeded, and no AI model was permitted to auto-resolve human tasks.
+### Updated Engine Scan Details (2026-10-18)
+- **Before Assessment ID:** `1bb287a4-a195-4059-944c-465622c995a7` (4 pages: Home, News, Tickets, Survey)
+- **After Assessment ID:** `53f2a37e-629e-4c61-bd78-84e9a60a996a` (4 pages: Home, News, Tickets, Survey)
+- **Total Before Findings Detected:** **36**
+  - `keyboard-focus-blur-suppression` (F55 / SC 2.1.1, 2.4.7, 3.2.1): **4 pages** (14 links on Home, 4 on News, 4 on Tickets, 4 on Survey)
+  - `keyboard-focus-indicator-missing` (F78 / SC 2.4.7): **4 pages** (Links with `outline: none` under real keyboard navigation)
+  - `layout-table-th-misuse` (F46 / SC 1.3.1): **1 page** (Tickets layout table misusing `<th>` for banner)
+  - `pointer-event-missing-keyboard` (F54 Candidate / SC 2.1.1): **4 pages** (Mouse-specific event handlers flagged for reviewer validation)
+  - `semantic-heading-simulated` (F2 Candidate / SC 1.3.1): **4 pages** (Headline classes without `<h1>-<h6>` flagged for reviewer validation)
+  - `image-alt` (F65 / SC 1.1.1): **4 pages**
+  - `link-name` (F89 / SC 2.4.4, 4.1.2): **4 pages**
+  - `select-name` (F68 / SC 1.3.1, 4.1.2): **4 pages**
+  - `html-has-lang` (3.1.1): **4 pages**
+  - `color-contrast` (1.4.3): **2 pages** (Home, Tickets)
+  - `label` (F68 / SC 1.3.1, 3.3.2, 4.1.2): **1 page** (Survey)
+- **Total After Findings (Accessible Reference Pages):** **0**
+  - **False Positive Rate on Reference Target:** **0.0%** (Zero false positives generated on accessible versions of the four BAD demonstration pages).
+- **Zero Fabricated Human Decisions:**
+  - In strict compliance with architectural constraints, all review tasks remain in status `open`.
+  - Preliminary applicability suggestions are recorded in task metadata, but no artificial `ReviewerDecision` records were seeded. Verified numerator remains at 0 pending authorized human review.
 
 ---
 

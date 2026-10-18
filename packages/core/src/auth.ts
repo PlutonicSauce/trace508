@@ -129,7 +129,7 @@ export async function login(value: unknown) {
 export async function createSession(user: { id: string; organizationId: string }) {
   const project = await db.project.findFirstOrThrow({
     where: { organizationId: user.organizationId },
-    orderBy: { id: 'asc' },
+    orderBy: [{ isFixture: 'asc' }, { id: 'asc' }],
   });
   const token = randomBytes(32).toString('base64url');
   await db.session.create({

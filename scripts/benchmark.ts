@@ -4,7 +4,7 @@ import { benchmark } from '../packages/core/src/benchmark';
 import { writeFile } from 'node:fs/promises';
 const rows = await db.assessment.findMany({
   where: { status: 'completed' },
-  orderBy: { createdAt: 'asc' },
+  orderBy: { createdAt: 'desc' },
 });
 const before = rows.find((r) => r.variant === 'before'),
   after = rows.find((r) => r.variant === 'after');
