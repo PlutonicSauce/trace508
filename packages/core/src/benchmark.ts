@@ -15,6 +15,7 @@ export const benchmarkTechniqueRules: Record<string, string[]> = {
   F70: ['duplicate-id', 'duplicate-id-active'],
   F71: ['text-lookalike'],
   F30: ['image-text-alternative'],
+  F46: ['layout-table-th-misuse'],
 };
 const rules: Record<string, string[]> = benchmarkTechniqueRules;
 export async function saveBenchmarkDecision(value: unknown) {

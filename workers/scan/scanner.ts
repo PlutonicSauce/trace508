@@ -13,7 +13,7 @@ import {
   priority,
   requirements,
 } from '../../packages/core/src/requirements';
-import { runInteractiveProbes } from '../../packages/core/src/probes';
+import { runInteractiveProbeSuite } from '../../packages/core/src/probes';
 import {
   validateUrl,
   resolvePublicHost,
@@ -181,12 +181,22 @@ export async function scanAssessment(
       if (requests > 400)
         throw new Error('Scan resource budget exceeded; no complete-scan claim can be made.');
       const result = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa']).analyze();
-      const probeViolations = await runInteractiveProbes(page);
+      const {
+        violations: probeViolations,
+        tabSequence,
+        applicability,
+      } = await runInteractiveProbeSuite(page);
       const title = await page.title();
       const dom = await page.content();
       if (Buffer.byteLength(dom) > 1000000)
         throw new Error('DOM evidence exceeded the one-megabyte state budget.');
-      rawPages.push({ pageId: record.id, url: page.url(), result, probes: probeViolations });
+      rawPages.push({
+        pageId: record.id,
+        url: page.url(),
+        result,
+        probes: probeViolations,
+        tabSequence,
+      });
       const directory = localPath('evidence', id);
       await mkdir(directory, { recursive: true, mode: 0o700 });
       const screenshot = path.join(directory, `${record.id}.png`);
@@ -244,6 +254,22 @@ export async function scanAssessment(
               screenshotSha256,
             },
           });
+          if (tabSequence && tabSequence.length > 0) {
+            const tabPayload = JSON.parse(JSON.stringify({ steps: tabSequence }));
+            await tx.evidence.create({
+              data: {
+                id: stableId(record.id, 'tab-sequence'),
+                pageId: record.id,
+                kind: 'tab-sequence',
+                summary: `Sequential keyboard Tab navigation trail (${tabSequence.length} interactive steps evaluated).`,
+                payload: tabPayload,
+                sha256: evidenceHash(tabPayload),
+                hashScheme: 'canonical-json-sha256-v1',
+                screenshot,
+                screenshotSha256,
+              },
+            });
+          }
           for (const violation of result.violations) {
             const fid = stableId(record.id, violation.id);
             await tx.finding.create({
@@ -261,6 +287,7 @@ export async function scanAssessment(
             });
             for (let n = 0; n < violation.nodes.length; n++) {
               const node = violation.nodes[n];
+              const nodePayload = JSON.parse(JSON.stringify(node));
               await tx.evidence.create({
                 data: {
                   id: stableId(fid, String(n)),
@@ -270,8 +297,8 @@ export async function scanAssessment(
                   selector: JSON.stringify(node.target),
                   html: node.html,
                   summary: node.failureSummary ?? violation.help,
-                  payload: JSON.parse(JSON.stringify(node)),
-                  sha256: evidenceHash(node),
+                  payload: nodePayload,
+                  sha256: evidenceHash(nodePayload),
                   hashScheme: 'canonical-json-sha256-v1',
                   screenshot,
                   screenshotSha256,
@@ -334,6 +361,7 @@ export async function scanAssessment(
             });
             for (let n = 0; n < probe.nodes.length; n++) {
               const node = probe.nodes[n];
+              const payload = JSON.parse(JSON.stringify(node));
               await tx.evidence.create({
                 data: {
                   id: stableId(fid, String(n)),
@@ -343,8 +371,8 @@ export async function scanAssessment(
                   selector: JSON.stringify(node.target),
                   html: node.html,
                   summary: node.failureSummary,
-                  payload: JSON.parse(JSON.stringify(node.details ?? node)),
-                  sha256: evidenceHash(node),
+                  payload,
+                  sha256: evidenceHash(payload),
                   hashScheme: 'canonical-json-sha256-v1',
                   screenshot,
                   screenshotSha256,
@@ -390,7 +418,14 @@ export async function scanAssessment(
               },
             });
           }
-          for (const r of requirements)
+          for (const r of requirements) {
+            const suggestion = applicability[r.id];
+            const suggestionText = suggestion
+              ? `\n\n[Preliminary Applicability Suggestion]: ${suggestion.reason}`
+              : '';
+            const incompleteText = result.incomplete.some((v) => mapTags(v.tags).includes(r.id))
+              ? ' axe also reported inconclusive checks for this criterion.'
+              : '';
             await tx.reviewTask.create({
               data: {
                 id: stableId(record.id, r.id),
@@ -398,9 +433,11 @@ export async function scanAssessment(
                 pageId: record.id,
                 requirementId: r.id,
                 kind: 'criterion',
-                reason: `${r.reviewGuide} ${result.incomplete.some((v) => mapTags(v.tags).includes(r.id)) ? 'axe also reported inconclusive checks for this criterion.' : ''}`,
+                reason: `${r.reviewGuide}${incompleteText}${suggestionText}`,
+                status: 'open',
               },
             });
+          }
           await tx.auditEvent.create({
             data: {
               assessmentId: id,
@@ -420,6 +457,7 @@ export async function scanAssessment(
       if (state.status !== 'running') throw new Error('Assessment cancelled');
       await db.assessment.update({ where: { id }, data: { progress: 'Navigating ' + record.url } });
       const page = await context.newPage();
+      await page.addInitScript('window.__name = function(fn) { return fn; };');
       page.on('dialog', (d) => d.dismiss());
       page.on('popup', (p) => void p.close());
       const response = await page.goto(record.url, {

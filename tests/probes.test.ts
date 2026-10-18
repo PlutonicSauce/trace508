@@ -1,6 +1,11 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { chromium, type Browser, type Page } from 'playwright';
-import { runInteractiveProbes } from '../packages/core/src/probes';
+import {
+  runInteractiveProbes,
+  runInteractiveProbeSuite,
+  probeKeyboardNavigation,
+  detectCriterionApplicability,
+} from '../packages/core/src/probes';
 import { mapRuleToRequirements, mapTags } from '../packages/core/src/requirements';
 import { benchmarkTechniqueRules } from '../packages/core/src/benchmark';
 
@@ -62,7 +67,7 @@ describe('Interactive Accessibility Probes Suite', () => {
   });
 
   describe('Pointer Events Missing Keyboard Parity Probe (F54 / SC 2.1.1)', () => {
-    it('detects mouse-specific handlers without keyboard equivalents', async () => {
+    it('detects mouse-specific handlers without keyboard equivalents and classifies as candidate for human validation', async () => {
       await page.setContent(`
         <!DOCTYPE html>
         <html lang="en">
@@ -79,6 +84,7 @@ describe('Interactive Accessibility Probes Suite', () => {
 
       expect(pointerViolation).toBeDefined();
       expect(pointerViolation!.impact).toBe('serious');
+      expect(pointerViolation!.candidate).toBe(true);
       expect(pointerViolation!.requirements).toEqual(['2.1.1']);
       expect(pointerViolation!.nodes.some((n) => n.target.includes('#hover-img'))).toBe(true);
       expect(pointerViolation!.nodes.some((n) => n.target.includes('#accessible-hover'))).toBe(
@@ -88,7 +94,7 @@ describe('Interactive Accessibility Probes Suite', () => {
   });
 
   describe('Focus Indicator Missing Probe (F78 / SC 2.4.7)', () => {
-    it('detects focusable elements with outline: none and no visible state difference', async () => {
+    it('detects focusable elements with outline: none and no visible state difference under keyboard interaction', async () => {
       await page.setContent(`
         <!DOCTYPE html>
         <html lang="en">
@@ -132,7 +138,7 @@ describe('Interactive Accessibility Probes Suite', () => {
   });
 
   describe('Simulated Heading Structure Probe (F2 / SC 1.3.1)', () => {
-    it('detects headline styling on non-heading tags without semantic markup', async () => {
+    it('detects headline styling on non-heading tags without semantic markup and marks as candidate for human validation', async () => {
       await page.setContent(`
         <!DOCTYPE html>
         <html lang="en">
@@ -150,6 +156,7 @@ describe('Interactive Accessibility Probes Suite', () => {
 
       expect(headingViolation).toBeDefined();
       expect(headingViolation!.impact).toBe('moderate');
+      expect(headingViolation!.candidate).toBe(true);
       expect(headingViolation!.requirements).toEqual(['1.3.1']);
       expect(headingViolation!.nodes).toHaveLength(2);
     });
@@ -187,14 +194,118 @@ describe('Interactive Accessibility Probes Suite', () => {
     });
   });
 
+  describe('Layout vs Data Table Analyzer (Technique F46 / SC 1.3.1)', () => {
+    it('detects layout tables misusing <th> elements for visual presentation', async () => {
+      await page.setContent(`
+        <!DOCTYPE html>
+        <html lang="en">
+          <head><title>Ticket Layout</title></head>
+          <body>
+            <table role="presentation">
+              <tr><th>Layout Header Banner</th></tr>
+              <tr><td>Content cell</td></tr>
+            </table>
+            <table class="data-table">
+              <caption>Concert Schedule</caption>
+              <thead>
+                <tr><th>Date</th><th>Concert</th></tr>
+              </thead>
+              <tbody>
+                <tr><td>Oct 20</td><td>Symphony</td></tr>
+              </tbody>
+            </table>
+          </body>
+        </html>
+      `);
+
+      const violations = await runInteractiveProbes(page);
+      const tableViolation = violations.find((v) => v.id === 'layout-table-th-misuse');
+
+      expect(tableViolation).toBeDefined();
+      expect(tableViolation!.impact).toBe('moderate');
+      expect(tableViolation!.requirements).toEqual(['1.3.1']);
+      expect(tableViolation!.nodes).toHaveLength(1);
+    });
+  });
+
+  describe('Real-Time Keyboard Tab Navigation & Focus Persistence', () => {
+    it('traces sequential keyboard tab navigation and captures tab sequence steps', async () => {
+      await page.setContent(`
+        <!DOCTYPE html>
+        <html lang="en">
+          <head><title>Keyboard Navigation Flow</title></head>
+          <body>
+            <a href="#first" id="first-link">First Link</a>
+            <button id="mid-btn">Middle Button</button>
+            <input type="text" id="last-input" placeholder="Name">
+          </body>
+        </html>
+      `);
+
+      const suite = await runInteractiveProbeSuite(page);
+      expect(suite.tabSequence.length).toBeGreaterThanOrEqual(3);
+      expect(suite.tabSequence[0].tag).toBe('a');
+      expect(suite.tabSequence[1].tag).toBe('button');
+      expect(suite.tabSequence[2].tag).toBe('input');
+    });
+
+    it('detects keyboard focus trap when focus cannot advance after repeated tabs', async () => {
+      await page.setContent(`
+        <!DOCTYPE html>
+        <html lang="en">
+          <head><title>Keyboard Trap Test</title></head>
+          <body>
+            <button id="trap-btn" onkeydown="event.preventDefault(); this.focus();">Trapped Control</button>
+          </body>
+        </html>
+      `);
+
+      const { violations } = await probeKeyboardNavigation(page, 10);
+      const trap = violations.find((v) => v.id === 'keyboard-trap');
+      expect(trap).toBeDefined();
+      expect(trap!.impact).toBe('critical');
+      expect(trap!.requirements).toEqual(['2.1.2']);
+    });
+  });
+
+  describe('Preliminary Applicability Suggestions (Zero False Reviewer Decisions)', () => {
+    it('suggests Not Applicable for multimedia criteria when 0 media tags exist without resolving task', async () => {
+      await page.setContent(`
+        <!DOCTYPE html>
+        <html lang="en">
+          <head><title>Text Only Document</title></head>
+          <body><h1>Heading</h1><p>Simple static text without multimedia.</p></body>
+        </html>
+      `);
+
+      const suggestions = await detectCriterionApplicability(page);
+      expect(suggestions['1.2.1']).toBeDefined();
+      expect(suggestions['1.2.1'].applicable).toBe(false);
+      expect(suggestions['1.2.1'].reason).toContain('Preliminary applicability suggestion');
+      expect(suggestions['1.2.1'].reason).toContain('0 media elements');
+      // Verify form suggestions
+      expect(suggestions['3.3.1']).toBeDefined();
+      expect(suggestions['3.3.1'].applicable).toBe(false);
+    });
+  });
+
   describe('Multi-Criterion Mapping & Benchmark Technique Alignment', () => {
-    it('maps form labeling rules to WCAG 1.3.1, 3.3.2, and 4.1.2 per Technique F68', () => {
+    it('maps form labeling rule to WCAG 1.3.1, 3.3.2, and 4.1.2 per Technique F68', () => {
       expect(mapRuleToRequirements('label', ['wcag2a', 'wcag412'])).toEqual(
         expect.arrayContaining(['1.3.1', '3.3.2', '4.1.2']),
       );
-      expect(mapRuleToRequirements('select-name', ['wcag2a', 'wcag412'])).toEqual(
-        expect.arrayContaining(['1.3.1', '3.3.2', '4.1.2']),
-      );
+    });
+
+    it('maps select-name to 1.3.1 and 4.1.2 per Technique F68 without invalid 3.3.2 mapping', () => {
+      const selectReqs = mapRuleToRequirements('select-name', ['wcag2a', 'wcag412']);
+      expect(selectReqs).toContain('1.3.1');
+      expect(selectReqs).toContain('4.1.2');
+      expect(selectReqs).not.toContain('3.3.2');
+    });
+
+    it('maps input-button-name to 4.1.2 without invalid 3.3.2 or 1.3.1 mapping', () => {
+      const buttonReqs = mapRuleToRequirements('input-button-name', ['wcag2a', 'wcag412']);
+      expect(buttonReqs).toEqual(['4.1.2']);
     });
 
     it('preserves single-criterion mappings for standard rules', () => {
@@ -209,6 +320,7 @@ describe('Interactive Accessibility Probes Suite', () => {
       expect(benchmarkTechniqueRules.F2).toContain('semantic-heading-simulated');
       expect(benchmarkTechniqueRules.F25).toContain('document-title-missing');
       expect(benchmarkTechniqueRules.F68).toContain('select-name');
+      expect(benchmarkTechniqueRules.F46).toContain('layout-table-th-misuse');
     });
   });
 });

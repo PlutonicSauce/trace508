@@ -1896,12 +1896,14 @@ function ReviewWorkspace({
 }) {
   const [kind, setKind] = useState('criterion'),
     [status, setStatus] = useState('open'),
+    [suggestionsOnly, setSuggestionsOnly] = useState(false),
     [chosen, setChosen] = useState(''),
     [search, setSearch] = useState('');
   const tasks = a.tasks.filter(
     (t) =>
       t.kind === kind &&
       (status === 'all' || t.status === status) &&
+      (!suggestionsOnly || t.reason.includes('[Preliminary Applicability Suggestion]')) &&
       `${t.requirementId} ${t.requirement.title} ${t.page.url}`
         .toLowerCase()
         .includes(search.toLowerCase()),
@@ -1931,6 +1933,14 @@ function ReviewWorkspace({
             <option value="resolved">Resolved tasks</option>
             <option value="all">All tasks</option>
           </select>
+          <select
+            aria-label="Applicability filter"
+            value={suggestionsOnly ? 'suggestions' : 'all'}
+            onChange={(e) => setSuggestionsOnly(e.target.value === 'suggestions')}
+          >
+            <option value="all">All scopes</option>
+            <option value="suggestions">With suggestions</option>
+          </select>
           <input
             aria-label="Search review tasks"
             placeholder="Search criterion or page…"
@@ -1948,6 +1958,9 @@ function ReviewWorkspace({
               <span className="task-criterion">
                 {task.requirementId}
                 <Badge tone={task.status === 'resolved' ? 'green' : 'amber'}>{task.status}</Badge>
+                {task.reason.includes('[Preliminary Applicability Suggestion]') && (
+                  <Badge tone="purple">Suggestion</Badge>
+                )}
               </span>
               <strong>{task.requirement.title}</strong>
               <small>
@@ -2041,9 +2054,35 @@ function ReviewForm({
       </div>
       <h2>{t.requirement.title}</h2>
       <p className="muted">{t.page.url}</p>
+      {t.reason.includes('[Preliminary Applicability Suggestion]') && (
+        <div
+          className="alert warning"
+          style={{
+            margin: '12px 0',
+            borderLeft: '4px solid #f59e0b',
+            background: '#fffbeb',
+            color: '#92400e',
+            padding: '10px 14px',
+          }}
+        >
+          <Sparkles size={18} />
+          <div>
+            <strong>Preliminary Applicability Suggestion:</strong>
+            <p style={{ margin: '4px 0 0 0', fontSize: '0.86rem' }}>
+              {t.reason.split('[Preliminary Applicability Suggestion]:')[1]?.trim()}
+            </p>
+            <small
+              style={{ color: '#b45309', display: 'block', marginTop: '4px', fontSize: '0.78rem' }}
+            >
+              Review task remains unresolved. An authorized human reviewer must verify dynamic
+              states before confirming.
+            </small>
+          </div>
+        </div>
+      )}
       <div className="alert neutral">
         <ClipboardCheck size={21} />
-        <p>{t.reason}</p>
+        <p>{t.reason.split('\n\n[Preliminary Applicability Suggestion]:')[0]}</p>
       </div>
       {t.requirement.reviewGuide && (
         <div className="panel-note" style={{ marginBottom: '16px' }}>
@@ -2606,6 +2645,27 @@ function IntegrityWorkspace({
     </div>
   );
 }
+const RULE_TECHNIQUES: Record<string, { id: string; name: string }> = {
+  'keyboard-focus-blur-suppression': { id: 'F55', name: 'Script removes focus on receipt' },
+  'keyboard-focus-indicator-missing': { id: 'F78', name: 'Styling removes visual focus indicator' },
+  'pointer-event-missing-keyboard': {
+    id: 'F54',
+    name: 'Pointing-device handler without keyboard parity',
+  },
+  'layout-table-th-misuse': { id: 'F46', name: 'Using th elements to format layout tables' },
+  'semantic-heading-simulated': {
+    id: 'F2',
+    name: 'Visual heading presentation without semantic markup',
+  },
+  'document-title-missing': { id: 'F25', name: 'Missing or generic document title' },
+  'image-alt': { id: 'F65', name: 'Missing alt attribute on img' },
+  'link-name': { id: 'F89', name: 'Null or empty link text' },
+  label: { id: 'F68', name: 'Label association not programmatically determinable' },
+  'select-name': { id: 'F68', name: 'Missing accessible name on select' },
+  'color-contrast': { id: 'F24', name: 'Insufficient color contrast ratio' },
+  'keyboard-trap': { id: 'SC 2.1.2', name: 'Keyboard focus trapped in component' },
+};
+
 function RemediationCard({
   f,
   onInspect,
@@ -2622,6 +2682,8 @@ function RemediationCard({
   const [status, setStatus] = useState('remediation-proposed'),
     [notes, setNotes] = useState(''),
     [busy, setBusy] = useState(false);
+  const tech = RULE_TECHNIQUES[f.ruleId];
+
   return (
     <article className="backlog-item">
       <span className={`priority p${f.remediation?.priority}`}>P{f.remediation?.priority}</span>
@@ -2631,6 +2693,7 @@ function RemediationCard({
             {f.help}
           </button>
           <Badge tone="orange">{f.impact}</Badge>
+          {tech && <Badge tone="purple">W3C Technique {tech.id}</Badge>}
         </div>
         <div className="issue-state">
           <Badge tone={f.remediation?.status === 'verified-resolved' ? 'green' : 'amber'}>
@@ -2638,25 +2701,123 @@ function RemediationCard({
           </Badge>
         </div>
         <p>{f.remediation?.guidance}</p>
-        <div className="button-row">
-          <button
-            className="button secondary compact"
-            disabled={busy}
-            onClick={async () => {
-              setBusy(true);
-              await onRetest();
-              setBusy(false);
-            }}
+
+        {/* Side-by-Side Remediation Retest Diff Viewer */}
+        <div
+          className="remediation-diff-grid"
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)',
+            gap: '14px',
+            margin: '12px 0',
+            padding: '12px',
+            background: '#f8fafc',
+            borderRadius: '6px',
+            border: '1px solid #e2e8f0',
+          }}
+        >
+          <div
+            className="diff-original"
+            style={{ borderRight: '1px solid #e2e8f0', paddingRight: '12px' }}
           >
-            Run independent retest
-          </button>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px' }}>
+              <Badge tone="red">Original Failing State</Badge>
+              {tech && <small style={{ color: '#64748b', fontSize: '0.75rem' }}>{tech.name}</small>}
+            </div>
+            <p style={{ fontSize: '0.8rem', margin: '4px 0', color: '#475569' }}>
+              <strong>Selector:</strong>{' '}
+              <code style={{ fontSize: '0.75rem' }}>
+                {f.evidence[0]?.selector?.slice(0, 60) || f.ruleId}
+              </code>
+            </p>
+            {f.evidence[0]?.html && (
+              <pre
+                style={{
+                  background: '#0f172a',
+                  color: '#e2e8f0',
+                  padding: '8px',
+                  borderRadius: '4px',
+                  fontSize: '0.72rem',
+                  overflowX: 'auto',
+                  maxHeight: '90px',
+                  margin: '6px 0',
+                }}
+              >
+                <code>{f.evidence[0].html}</code>
+              </pre>
+            )}
+            <p style={{ fontSize: '0.78rem', color: '#64748b', margin: '4px 0 0 0' }}>
+              {f.evidence[0]?.summary || f.description}
+            </p>
+          </div>
+          <div className="diff-retest">
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px' }}>
+              <Badge tone={f.remediation?.status === 'verified-resolved' ? 'green' : 'amber'}>
+                {f.remediation?.status === 'verified-resolved'
+                  ? 'Verified Resolved'
+                  : 'Retest State: ' + (f.remediation?.status ?? 'open')}
+              </Badge>
+            </div>
+            {f.remediation?.retests && f.remediation.retests.length > 0 ? (
+              f.remediation.retests.map((r) => (
+                <div
+                  key={r.id}
+                  style={{
+                    background: '#fff',
+                    border: '1px solid #e2e8f0',
+                    borderRadius: '4px',
+                    padding: '8px',
+                    marginBottom: '6px',
+                  }}
+                >
+                  <p
+                    style={{
+                      fontSize: '0.8rem',
+                      margin: 0,
+                      fontWeight: 600,
+                      color: r.outcome === 'verified-resolved' ? '#16a34a' : '#d97706',
+                    }}
+                  >
+                    Retest {r.assessment.id.slice(0, 8)}: {r.outcome}
+                  </p>
+                  <p style={{ fontSize: '0.75rem', color: '#64748b', margin: '2px 0 0 0' }}>
+                    {r.explanation}
+                  </p>
+                </div>
+              ))
+            ) : (
+              <div
+                style={{
+                  background: '#fff',
+                  border: '1px dashed #cbd5e1',
+                  borderRadius: '4px',
+                  padding: '8px',
+                  textAlign: 'center',
+                }}
+              >
+                <p style={{ fontSize: '0.78rem', color: '#64748b', margin: 0 }}>
+                  No independent retest run yet.
+                </p>
+                <button
+                  type="button"
+                  className="button secondary compact"
+                  style={{ marginTop: '6px', fontSize: '0.75rem' }}
+                  disabled={busy}
+                  onClick={async () => {
+                    setBusy(true);
+                    await onRetest();
+                    setBusy(false);
+                  }}
+                >
+                  Run independent retest
+                </button>
+              </div>
+            )}
+            <div style={{ marginTop: '8px', fontSize: '0.78rem', color: '#334155' }}>
+              <strong>Verification:</strong> {f.remediation?.verification}
+            </div>
+          </div>
         </div>
-        {f.remediation?.retests.map((r) => (
-          <p className="field-help" key={r.id}>
-            Retest {r.assessment.id.slice(0, 8)}: {r.assessment.status} · {r.outcome}.{' '}
-            {r.explanation}
-          </p>
-        ))}
 
         <div className="backlog-meta">
           <code>{f.ruleId}</code>
