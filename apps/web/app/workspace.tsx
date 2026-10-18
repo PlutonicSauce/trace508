@@ -2722,9 +2722,9 @@ function RemediationCard({
           >
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px' }}>
               <Badge tone="red">Original Failing State</Badge>
-              {tech && <small style={{ color: '#64748b', fontSize: '0.75rem' }}>{tech.name}</small>}
+              {tech && <small style={{ color: '#334155', fontSize: '0.75rem' }}>{tech.name}</small>}
             </div>
-            <p style={{ fontSize: '0.8rem', margin: '4px 0', color: '#475569' }}>
+            <p style={{ fontSize: '0.8rem', margin: '4px 0', color: '#1e293b' }}>
               <strong>Selector:</strong>{' '}
               <code style={{ fontSize: '0.75rem' }}>
                 {f.evidence[0]?.selector?.slice(0, 60) || f.ruleId}
@@ -2732,9 +2732,11 @@ function RemediationCard({
             </p>
             {f.evidence[0]?.html && (
               <pre
+                tabIndex={0}
+                aria-label="Failing HTML element snippet"
                 style={{
                   background: '#0f172a',
-                  color: '#e2e8f0',
+                  color: '#f8fafc',
                   padding: '8px',
                   borderRadius: '4px',
                   fontSize: '0.72rem',
@@ -2746,7 +2748,7 @@ function RemediationCard({
                 <code>{f.evidence[0].html}</code>
               </pre>
             )}
-            <p style={{ fontSize: '0.78rem', color: '#64748b', margin: '4px 0 0 0' }}>
+            <p style={{ fontSize: '0.78rem', color: '#334155', margin: '4px 0 0 0' }}>
               {f.evidence[0]?.summary || f.description}
             </p>
           </div>
@@ -2780,7 +2782,7 @@ function RemediationCard({
                   >
                     Retest {r.assessment.id.slice(0, 8)}: {r.outcome}
                   </p>
-                  <p style={{ fontSize: '0.75rem', color: '#64748b', margin: '2px 0 0 0' }}>
+                  <p style={{ fontSize: '0.75rem', color: '#334155', margin: '2px 0 0 0' }}>
                     {r.explanation}
                   </p>
                 </div>
@@ -2795,7 +2797,7 @@ function RemediationCard({
                   textAlign: 'center',
                 }}
               >
-                <p style={{ fontSize: '0.78rem', color: '#64748b', margin: 0 }}>
+                <p style={{ fontSize: '0.78rem', color: '#334155', margin: 0 }}>
                   No independent retest run yet.
                 </p>
                 <button
